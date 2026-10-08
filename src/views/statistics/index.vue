@@ -1,6 +1,6 @@
 <template>
   <div class="dashboard-container home">
-    <TitleIndex :flag="flag" :tateData="tateData" @sendTitleInd="getTitleNum" />
+    <TitleIndex :flag="flag" :tateData="tateData" @sendTitleInd="getTitleNum" @sendCustomRange="getCustomRange" />
     <div class="homeMain">
       <TurnoverStatistics :turnoverdata="turnoverData" />
       <UserStatistics :userdata="userData" />
@@ -144,6 +144,14 @@ export default class extends Vue {
         break
     }
     this.init(this.tateData[0],this.tateData[1])
+  }
+  // 自定义日期区间：直接按用户选择的起止日期取数，复用同一套 init(begin, end) 通道
+  getCustomRange(range: string[]) {
+    if (!range || range.length < 2 || !range[0] || !range[1]) {
+      return
+    }
+    this.tateData = range
+    this.init(range[0], range[1])
   }
 }
 </script>

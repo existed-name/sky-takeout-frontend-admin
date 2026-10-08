@@ -18,6 +18,19 @@
     
       </p>
     </div>
+    <div class="custom-time">
+      <el-date-picker
+        v-model="customRange"
+        type="daterange"
+        value-format="yyyy-MM-dd"
+        range-separator="至"
+        start-placeholder="开始日期"
+        end-placeholder="结束日期"
+        :clearable="true"
+        unlink-panels
+        @change="handleCustomRange"
+      />
+    </div>
     <el-button class="right-el-button" icon="iconfont icon-download" @click="handleExport">
       数据导出
     </el-button>
@@ -37,6 +50,8 @@ export default class extends Vue {
   nowIndex = 2 - 1
   value = []
   tabsParam = ['昨日', '近7日', '近30日', '本周', '本月']
+  // 自定义起止日期，元素为 yyyy-MM-dd 字符串（依赖选择器的 value-format）
+  customRange = [] as string[]
   @Watch('flag')
   getNowIndex(val) {
     this.nowIndex = val
@@ -45,7 +60,26 @@ export default class extends Vue {
   toggleTabs(index: number) {
     this.nowIndex = index
     this.value = []
+    // 切回预设页签时清空自定义区间，保证「预设区间」与「自定义区间」互斥
+    this.customRange = []
     this.$emit('sendTitleInd', index + 1)
+  }
+  // 自定义区间变化：校验后把区间上抛给父组件取数
+  handleCustomRange(val: any) {
+    // 清空选择器（val 为 null）或值不完整时不发请求
+    if (!val || val.length < 2 || !val[0] || !val[1]) {
+      this.customRange = []
+      return
+    }
+    // 选择器自身已限制 begin <= end，这里再兜一次
+    if (val[0] > val[1]) {
+      this.$message.error('开始日期不能晚于结束日期')
+      this.customRange = []
+      return
+    }
+    // 自定义区间不再对应任何预设页签，取消页签高亮（nowIndex = -1 时不会命中任何页签）
+    this.nowIndex = -1
+    this.$emit('sendCustomRange', [val[0], val[1]])
   }
   /** 导出按钮操作：按当前所选时间区间导出运营数据 */
   handleExport() {

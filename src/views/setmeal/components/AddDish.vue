@@ -107,13 +107,6 @@ export default class extends Vue {
       } else {
         this.$message.error(res.data.msg)
       }
-      // if (res.data.code == 200) {
-      //   const { data } = res.data
-      //   this.   = data
-      //   this.getDishList(data[0].category_id)
-      // } else {
-      //   this.$message.error(res.data.desc)
-      // }
     })
   }
 

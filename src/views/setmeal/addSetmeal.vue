@@ -244,18 +244,6 @@ export default class extends Vue {
     })
   }
 
-  // 通过套餐ID获取菜品列表分类
-  // private getDishList (id:number) {
-  //   getDishListType({id}).then(res => {
-  //     if (res.data.code == 200) {
-  //       const { data } = res.data
-  //       this.dishList = data
-  //     } else {
-  //       this.$message.error(res.data.desc)
-  //     }
-  //   })
-  // }
-
   // 删除套餐菜品
   delDishHandle(index: any) {
     this.dishTable.splice(index, 1)
@@ -349,7 +337,7 @@ export default class extends Vue {
                 this.$message.success('套餐修改成功！')
                 this.$router.push({ path: '/setmeal' })
               } else {
-                // this.$message.error(res.data.desc || res.data.message)
+                this.$message.error(res.data.msg)
               }
             })
             .catch(err => {

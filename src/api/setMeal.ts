@@ -8,7 +8,7 @@ import request from '@/utils/request'
 // 查询列表数据
 export const getSetmealPage = (params: any) => {
   return request({
-    url: '/setmeal/page',
+    url: '/setmeals',
     method: 'get',
     params,
   },)
@@ -17,7 +17,7 @@ export const getSetmealPage = (params: any) => {
 // 删除数据接口
 export const deleteSetmeal = (ids: string) => {
   return request({
-    url: '/setmeal',
+    url: '/setmeals',
     method: 'delete',
     params: { ids }
   })
@@ -25,17 +25,20 @@ export const deleteSetmeal = (ids: string) => {
 
 // 修改数据接口
 export const editSetmeal = (params: any) => {
+  // 主键拼进路径，请求体里不能再带主键（后端按路径变量取主键，
+  // 请求体对应的数据传输对象里没有主键字段）
+  const { id, ...rest } = params
   return request({
-    url: '/setmeal',
+    url: '/setmeals/' + id,
     method: 'put',
-    data: { ...params }
+    data: rest
   })
 }
 
 // 新增数据接口
 export const addSetmeal = (params: any) => {
   return request({
-    url: '/setmeal',
+    url: '/setmeals',
     method: 'post',
     data: { ...params }
   })
@@ -44,24 +47,26 @@ export const addSetmeal = (params: any) => {
 // 查询详情接口
 export const querySetmealById = (id: string | (string | null)[]) => {
   return request({
-    url: `/setmeal/${id}`,
+    url: '/setmeals/' + id,
     method: 'get'
   })
 }
 
 // 起售禁售
+// 后端只提供单条状态切换端点：主键在路径、状态值在请求体。
+// 键名与菜品/员工/分类三个模块统一为 id
 export const setmealStatusByStatus = (params: any) => {
   return request({
-    url: `/setmeal/status/${params.status}`,
-    method: 'post',
-    params: { id: params.ids }
+    url: '/setmeals/' + params.id + '/status',
+    method: 'put',
+    data: { status: params.status }
   })
 }
 
 //菜品分类数据查询
 export const dishCategoryList = (params: any) => {
   return request({
-    url: `/category/list`,
+    url: `/categories/list`,
     method: 'get',
     params: { ...params }
   })

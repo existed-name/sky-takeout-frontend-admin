@@ -205,27 +205,15 @@ export default class extends Vue {
     })
   }
 
-  //状态更改
+  //状态更改（后端只提供单条状态切换端点，键名与菜品/员工/分类模块统一为 id）
   private statusHandle(row: any) {
-    let params: any = {}
-    if (typeof row === 'string') {
-      if (this.checkList.length == 0) {
-        this.$message.error('批量操作，请先勾选操作菜品！')
-        return false
-      }
-      params.ids = this.checkList.join(',')
-      params.status = row
-    } else {
-      params.ids = row.id
-      params.status = row.status ? '0' : '1'
-    }
-
+    const targetStatus = row.status ? 0 : 1
     this.$confirm('确认更改该套餐状态?', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     }).then(() => {
-      setmealStatusByStatus(params)
+      setmealStatusByStatus({ id: row.id, status: targetStatus })
         .then(res => {
           if (res.data.code === 1) {
             this.$message.success('套餐状态已经更改成功！')

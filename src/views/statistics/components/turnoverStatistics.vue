@@ -94,14 +94,15 @@ export default class extends Vue {
           type: 'line',
           // stack: 'Total',
           smooth: false, //否平滑曲线
-          showSymbol: false, //未显示鼠标上移的圆点
+          showSymbol: true, //显示数据点，只有 1 天数据时也能看见
           symbolSize: 10,
+          symbol: 'circle', //实心圆点（默认是白心空心圆）
           // symbol:"circle", //设置折线点定位实心点
           itemStyle: {
             normal: {
               color: '#F29C1B',
               lineStyle: {
-                color: '#FFD000',
+                color: '#F29C1B', //与数据点同色，提高白底下的对比度
               },
             },
             emphasis: {

@@ -101,7 +101,7 @@ export default class extends Vue {
               label: {
                 //内容样式
                 show: true,
-                formatter: '{@score}',
+                formatter: '{c}', //显示数据项自身的数值（'{@score}' 找不到 score 字段，标签恒为空）
                 color: '#333',
                 // position: "insideLeft", //内部左对齐
                 position: ['8', '5'], //自定义位置第一个参数为x轴方向，第二个参数为y轴方向，左上角为起点，向右向下为正数，向上向左为负数

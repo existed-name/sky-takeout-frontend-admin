@@ -50,7 +50,7 @@
         <el-table-column label="售价">
           <template slot-scope="scope">
             <span style="margin-right:10px">
-              ￥{{ scope.row.price.toFixed(2)*100/100 }}
+              {{ scope.row.price == null ? '—' : '￥' + Number(scope.row.price).toFixed(2) }}
             </span>
           </template>
         </el-table-column>

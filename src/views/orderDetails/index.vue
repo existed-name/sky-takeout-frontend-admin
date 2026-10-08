@@ -42,7 +42,7 @@
         <el-table-column v-if="[0,2,5].includes(orderStatus)" :key="'amount'" prop="amount" label="实收金额" align="center">
           <template slot-scope="{ row }">
             <span>
-              ￥{{ row.amount.toFixed(2)*100/100 }}
+              {{ row.amount == null ? '—' : '￥' + Number(row.amount).toFixed(2) }}
             </span>
           </template>
         </el-table-column>

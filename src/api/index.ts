@@ -1,18 +1,4 @@
 import request from '@/utils/request'
-// 营业额数据
-// export const getTurnoverDataes = (data) =>
-//   request({
-//     'url': `/report/turnoverStatistics`,
-//     'method': 'get',
-//     data
-//   })
-// 首页数据
-// // 今日数据
-// export const getTodayDataes = () =>
-//   request({
-//     'url': `/workspace/todaydate`,
-//     'method': 'get'
-//   })
 // 订单管理
   export const getOrderData = () =>
   request({
@@ -42,19 +28,11 @@ request({
  * 报表数据
  *
  **/
-// 统计
-// 获取当日销售数据 -> 顶部数据
-// export const getDataes = (params: any) =>
-//   request({
-//     'url': `/report/amountCollect/${params.date}`,
-//     'method': 'get'
-//   })
-
 
 // 营业额统计
 export const getTurnoverStatistics= (params: any) =>
   request({
-    'url': `/report/turnoverStatistics`,
+    'url': `/report/turnover-statistics`,
     'method': 'get',
     params
   })
@@ -62,29 +40,30 @@ export const getTurnoverStatistics= (params: any) =>
 // 用户统计
 export const getUserStatistics= (params: any) =>
   request({
-    'url': `/report/userStatistics`,
+    'url': `/report/user-statistics`,
     'method': 'get',
     params
   })
   // 订单统计
 export const getOrderStatistics= (params: any) =>
 request({
-  'url': `/report/ordersStatistics`,
+  'url': `/report/order-statistics`,
   'method': 'get',
   params
 })
   // 销量排名TOP10
   export const getTop= (params: any) =>
   request({
-    'url': `/report/top10`,
+    'url': `/report/sales-statistics`,
     'method': 'get',
     params
   })
-  // 导出
-  export function exportInfor() {
+  // 导出运营数据报表：后端要求必填 begin/end（yyyy-MM-dd），返回 Excel 文件流
+  export function exportInfor(params: any) {
     return request({
       url: '/report/export',
       method: 'get',
-      responseType: "blob"
+      responseType: 'blob',
+      params
     })
   }

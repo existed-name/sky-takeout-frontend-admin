@@ -70,58 +70,59 @@ export default class extends Vue {
     })
   }
 
-  // 获取营业额统计数据
-  async getTurnoverStatisticsData(begin: any ,end:any) {
-    const data = await getTurnoverStatistics({ begin: begin,end:end })
-    const turnoverData = data.data.data
+  // 获取营业额统计数据（后端返回 items 对象数组，元素字段 date / turnover）
+  async getTurnoverStatisticsData(begin: any, end: any) {
+    const res = await getTurnoverStatistics({ begin, end })
+    const payload = (res.data && res.data.data) || {}
+    const items = payload.items || []
     this.turnoverData = {
-      dateList: turnoverData.dateList.split(','),
-      turnoverList: turnoverData.turnoverList.split(',')
+      dateList: items.map((item: any) => item.date),
+      turnoverList: items.map((item: any) => item.turnover)
     }
-    // this.tateData = this.turnoverData.date
-    // const arr = []
-    // this.tateData.forEach((val) => {
-    //   let date = new Date()
-    //   let year = date.getFullYear()
-    //   arr.push(year + '-' + val)
-    // })
-    // this.tateData = arr
   }
-  // 获取用户统计数据
-  async getUserStatisticsData(begin: any ,end:any) {
-    const data = await getUserStatistics({ begin: begin,end:end })
-    const userData = data.data.data
+
+  // 获取用户统计数据（userCountList 元素字段 date / total；userGrowthList 元素字段 date / growth）
+  async getUserStatisticsData(begin: any, end: any) {
+    const res = await getUserStatistics({ begin, end })
+    const payload = (res.data && res.data.data) || {}
+    const userCountList = payload.userCountList || []
+    const userGrowthList = payload.userGrowthList || []
     this.userData = {
-      dateList: userData.dateList.split(','),
-      totalUserList: userData.totalUserList.split(','),
-      newUserList: userData.newUserList.split(','),
+      dateList: userCountList.map((item: any) => item.date),
+      totalUserList: userCountList.map((item: any) => item.total),
+      newUserList: userGrowthList.map((item: any) => item.growth)
     }
   }
-  // 获取订单统计数据
-  async getOrderStatisticsData(begin: any ,end:any) {
-    const data = await getOrderStatistics({begin: begin,end:end })
-    const orderData = data.data.data
+
+  // 获取订单统计数据（orderCountList / validOrderCountList 元素字段均为 date / count）
+  async getOrderStatisticsData(begin: any, end: any) {
+    const res = await getOrderStatistics({ begin, end })
+    const payload = (res.data && res.data.data) || {}
+    const orderCountList = payload.orderCountList || []
+    const validOrderCountList = payload.validOrderCountList || []
     this.orderData = {
       data: {
-        dateList: orderData.dateList.split(','),
-        orderCountList: orderData.orderCountList.split(','),
-        validOrderCountList: orderData.validOrderCountList.split(','),
-        //orderCompletionRateList: orderData.orderCompletionRateList.split(','),
+        dateList: orderCountList.map((item: any) => item.date),
+        orderCountList: orderCountList.map((item: any) => item.count),
+        validOrderCountList: validOrderCountList.map((item: any) => item.count)
       },
-      totalOrderCount: orderData.totalOrderCount,
-      validOrderCount: orderData.validOrderCount,
-      orderCompletionRate: orderData.orderCompletionRate
+      totalOrderCount: payload.totalOrderCount,
+      validOrderCount: payload.validOrderCount,
+      orderCompletionRate: payload.orderCompletionRate
     }
   }
-  // 获取排行数据
-  async getTopData(begin: any ,end:any) {
-    const data = await getTop({begin: begin,end:end })
-    const top10Data = data.data.data
+
+  // 获取排行数据（items 元素字段 name / salesCount）
+  async getTopData(begin: any, end: any) {
+    const res = await getTop({ begin, end })
+    const payload = (res.data && res.data.data) || {}
+    const items = payload.items || []
     this.top10Data = {
-      nameList: top10Data.nameList.split(',').reverse(),
-      numberList: top10Data.numberList.split(',').reverse(),
+      // 注意：后端排序方向尚未实测（见验收实测项 6）。
+      // 若实测发现 /report/sales-statistics 已按销量降序返回，需删除这两个 .reverse()
+      nameList: items.map((item: any) => item.name).reverse(),
+      numberList: items.map((item: any) => item.salesCount).reverse()
     }
-    console.log(this.top10Data)
   }
   // 获取当前选中的tab时间
   getTitleNum(data) {

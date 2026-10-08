@@ -61,7 +61,7 @@
         </el-form-item>
         <div>
           <el-form-item label="菜品图片:" prop="image">
-            <image-upload :prop-image-url="imageUrl" @imageChange="imageChange">
+            <image-upload :prop-image-url="imageUrl" business-type="dish" @imageChange="imageChange">
 
             图片大小不超过2M
               <br />
@@ -109,11 +109,8 @@ import {
   queryDishById,
   addDish,
   editDish,
-  getCategoryList,
-  commonDownload
+  getCategoryList
 } from '@/api/dish'
-import { baseUrl } from '@/config.json'
-import { getToken } from '@/utils/cookies'
 @Component({
   name: 'addShop',
   components: {
@@ -135,9 +132,6 @@ export default class extends Vue {
   private vueRest = '1'
   private index = 0
   private inputStyle = { flex: 1 }
-  private headers = {
-    token: getToken()
-  }
   private ruleForm = {
     name: '',
     id: '',

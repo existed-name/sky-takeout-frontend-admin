@@ -1,6 +1,6 @@
 <template>
   <div class="upload-item">
-    <el-upload ref="uploadfiles" class="avatar-uploader" :class="{borderNone:imageUrl}" :accept="type" action="/api/common/upload" :show-file-list="false" :on-success="handleAvatarSuccess" :on-remove="handleRemove" :on-error="handleError" :before-upload="beforeAvatarUpload" :headers="headers">
+    <el-upload ref="uploadfiles" class="avatar-uploader" :class="{borderNone:imageUrl}" :accept="type" :action="uploadAction" name="file" :show-file-list="false" :on-success="handleAvatarSuccess" :on-remove="handleRemove" :on-error="handleError" :before-upload="beforeAvatarUpload" :headers="headers">
       <img v-if="imageUrl" class="avatar" :src="imageUrl" />
       <i v-else class="el-icon-plus avatar-uploader-icon" />
       <span v-if="imageUrl" class="el-upload-list__item-actions">
@@ -22,7 +22,6 @@
 
 <script lang="ts">
 import { Vue, Component, Prop, Watch } from 'vue-property-decorator'
-import { baseUrl } from '@/config.json'
 import { getToken } from '@/utils/cookies'
 @Component({
   name: 'UploadImage'
@@ -31,10 +30,22 @@ export default class extends Vue {
   @Prop({ default: '.jpg,.jpeg,.png' }) type: string
   @Prop({ default: 2 }) size: number
   @Prop({ default: '' }) propImageUrl: string
+  // 上传业务类型：dish（菜品图片）/ setmeal（套餐图片），决定后端上传端点
+  @Prop({ default: 'dish' }) businessType: string
 
-  private headers = {
-    token: getToken()
+  // 上传端点按业务分流：后端是 POST /admin/files/dish 与 POST /admin/files/setmeal。
+  // el-upload 自己发 XHR、不经过 axios 实例，baseURL 不会自动生效，
+  // 因此这里用工程既有的 VUE_APP_BASE_API 拼出前缀（与 axios 共用同一个前缀来源）。
+  get uploadAction() {
+    return `${process.env.VUE_APP_BASE_API}/files/${this.businessType}`
   }
+
+  // 令牌改为计算属性动态取值：原写法是实例字段，只在组件创建时取一次，
+  // 重新登录换令牌后，只要组件实例未销毁，上传仍会带着旧令牌，表现为「只有图片传不上去」
+  get headers() {
+    return { token: getToken() }
+  }
+
   private imageUrl = ''
   handleRemove() {}
 
@@ -44,7 +55,12 @@ export default class extends Vue {
   }
 
   handleError(err, file, fileList) {
-    console.log(err, file, fileList, 'handleError')
+    // 上传不经过 axios 拦截器，令牌失效时这里收到的是 HTTP 401，需要自行跳登录
+    if (err && (err.status === 401 || String(err.message || '').indexOf('401') !== -1)) {
+      this.$message.error('登录状态已失效，请重新登录')
+      this.$router.push('/login')
+      return
+    }
     this.$message({
       message: '图片上传失败',
       type: 'error'
@@ -52,10 +68,16 @@ export default class extends Vue {
   }
 
   handleAvatarSuccess(response: any, file: any, fileList: any) {
-    // this.imageUrl = response.data
+    // 上传失败时后端返回 HTTP 200 + code=0（响应体不是图片地址），必须判 code，
+    // 否则会把失败提示当成图片地址显示出来
+    if (!response || response.code !== 1) {
+      this.$message({
+        message: (response && response.msg) || '图片上传失败',
+        type: 'error'
+      })
+      return
+    }
     this.imageUrl = `${response.data}`
-    // this.imageUrl = `${baseUrl}/common/download?name=${response.data}`
-
     this.$emit('imageChange', this.imageUrl)
   }
 

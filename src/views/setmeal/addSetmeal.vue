@@ -64,7 +64,7 @@
         </div>
         <div>
           <el-form-item label="套餐图片:" required prop="image">
-            <image-upload :prop-image-url="imageUrl" @imageChange="imageChange">
+            <image-upload :prop-image-url="imageUrl" business-type="setmeal" @imageChange="imageChange">
               
             图片大小不超过2M
               <br />
@@ -125,7 +125,6 @@ import ImageUpload from '@/components/ImgUpload/index.vue'
 import AddDish from './components/AddDish.vue'
 import { querySetmealById, addSetmeal, editSetmeal } from '@/api/setMeal'
 import { getCategoryList } from '@/api/dish'
-import { baseUrl } from '@/config.json'
 
 @Component({
   name: 'addShop',

@@ -95,14 +95,12 @@ import { Component, Vue } from 'vue-property-decorator'
 import HeadLable from '@/components/HeadLable/index.vue'
 import {
   getDishPage,
-  editDish,
   deleteDish,
   dishStatusByStatus,
   dishCategoryList
 } from '@/api/dish'
 import InputAutoComplete from '@/components/InputAutoComplete/index.vue'
 import Empty from '@/components/Empty/index.vue'
-import { baseUrl } from '@/config.json'
 
 @Component({
   name: 'DishType',

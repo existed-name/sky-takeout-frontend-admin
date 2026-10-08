@@ -405,7 +405,6 @@ import {
   orderCancel,
   orderReject,
   orderAccept,
-  getOrderListBy,
 } from '@/api/order'
 @Component({
   name: 'Orderview',

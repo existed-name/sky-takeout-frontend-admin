@@ -294,12 +294,6 @@ export default class extends Vue {
       } else {
         this.$message.error(res.data.msg)
       }
-      // if (res.data.code == 200) {
-      //   const {data} = res.data
-      //   this.dishList = data
-      // } else {
-      //   this.$message.error(res.data.desc)
-      // }
     })
   }
 
@@ -321,8 +315,15 @@ export default class extends Vue {
         if (!this.ruleForm.image) return this.$message.error('菜品图片不能为空')
         let params: any = { ...this.ruleForm }
         // params.flavors = this.dishFlavors
-        params.status =
-          this.actionType === 'add' ? 0 : this.ruleForm.status ? 1 : 0
+        // 状态只在新增时提交：
+        // 编辑时后端查询详情接口不返回 status，回填后 ruleForm.status 恒为 false，
+        // 照旧提交会把已启售的菜品写成停售；不带 status 时后端更新语句会跳过该列，
+        // 数据库里的原值得以保留
+        if (this.actionType === 'add') {
+          params.status = 0
+        } else {
+          delete params.status
+        }
         // params.price *= 100
         params.categoryId = this.ruleForm.categoryId
         params.flavors = this.dishFlavors.map(obj => ({
@@ -356,7 +357,7 @@ export default class extends Vue {
                   this.restKey++
                 }
               } else {
-                this.$message.error(res.data.desc || res.data.msg)
+                this.$message.error(res.data.msg)
               }
             })
             .catch(err => {
@@ -371,14 +372,8 @@ export default class extends Vue {
                 this.$router.push({ path: '/dish' })
                 this.$message.success('菜品修改成功！')
               } else {
-                this.$message.error(res.data.desc || res.data.msg)
+                this.$message.error(res.data.msg)
               }
-              // if (res.data.code == 200) {
-              //   this.$router.push({'path': '/dish'})
-              //   this.$message.success('菜品修改成功！')
-              // } else {
-              //   this.$message.error(res.data.desc || res.data.message)
-              // }
             })
             .catch(err => {
               this.$message.error('请求出错了：' + err.message)

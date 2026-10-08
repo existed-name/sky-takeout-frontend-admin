@@ -117,7 +117,6 @@ export default class extends Vue {
   private pageSize: number = 10
   private checkList: string[] = []
   private tableData: [] = []
-  private dishState = ''
   private dishCategoryList = []
   private categoryId = ''
   private dishStatus = ''
@@ -222,28 +221,15 @@ export default class extends Vue {
       .catch(() => {})
   }
 
-  //状态更改
+  //状态更改（后端只提供单条状态切换端点）
   private statusHandle(row: any) {
-    let params: any = {}
-    if (typeof row === 'string') {
-      if (this.checkList.length === 0) {
-        this.$message.error('批量操作，请先勾选操作菜品！')
-        return false
-      }
-      params.id = this.checkList.join(',')
-      params.status = row
-    } else {
-      params.id = row.id
-      params.status = row.status ? '0' : '1'
-    }
-    this.dishState = params
+    const targetStatus = row.status ? 0 : 1
     this.$confirm('确认更改该菜品状态?', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     }).then(() => {
-      // 起售停售---批量起售停售接口
-      dishStatusByStatus(this.dishState)
+      dishStatusByStatus({ id: row.id, status: targetStatus })
         .then(res => {
           if (res && res.data && res.data.code === 1) {
             this.$message.success('菜品状态已经更改成功！')

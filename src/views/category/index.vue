@@ -40,16 +40,6 @@
           </template>
         </el-table-column>
         <el-table-column prop="sort" label="排序" />
-        <el-table-column label="状态">
-          <template slot-scope="scope">
-            <div class="tableColumn-status" :class="{'stop-use':String(scope.row.status)==='0'}">
-
-            {{ String(scope.row.status)==='0'?'禁用':'启用' }}
-
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="updateTime" label="操作时间" />
         <el-table-column label="操作" width="200" align="center">
           <template slot-scope="scope">
             <el-button class="blueBug" type="text" size="small" @click="editHandle(scope.row)">
@@ -60,11 +50,6 @@
             <el-button class="delBut" type="text" size="small" @click="deleteHandle(scope.row.id)">
 
             删除
-
-            </el-button>
-            <el-button class="non" :class="{blueBug:scope.row.status=='0',delBut:scope.row.status!='0'}" type="text" size="small" @click="statusHandle(scope.row)">
-
-            {{ scope.row.status=='1'?'禁用':'启用' }}
 
             </el-button>
           </template>
@@ -106,8 +91,7 @@ import {
   getCategoryPage,
   deleCategory,
   editCategory,
-  addCategory,
-  enableOrDisableEmployee
+  addCategory
 } from '@/api/category'
 import Empty from '@/components/Empty/index.vue'
 
@@ -130,8 +114,6 @@ export default class extends Vue {
     }
   ]
   private actionType: string = ''
-  private id = ''
-  private status = ''
   private categoryType: number = null
   private name: string = ''
   private action: string = ''
@@ -212,7 +194,7 @@ export default class extends Vue {
             res && res.data && res.data.data && res.data.data.records
           this.counts = Number(res.data.data.total)
         } else {
-          this.$message.error(res.data.desc)
+          this.$message.error(res.data.msg)
         }
       })
       .catch(err => {
@@ -244,6 +226,8 @@ export default class extends Vue {
     this.classData.name = dat.name
     this.classData.sort = dat.sort
     this.classData.id = dat.id
+    // 后端修改接口要求分类类型必填，从列表行取回原值
+    this.classData.type = dat.type
     this.classData.dialogVisible = true
     this.actionType = 'edit'
   }
@@ -254,29 +238,6 @@ export default class extends Vue {
     this.classData.dialogVisible = false
     //对该表单项进行重置，将其值重置为初始值并移除校验结果
     this.$refs.classData.resetFields()
-  }
-
-  //状态修改
-  private statusHandle(row: any) {
-    this.id = row.id
-    this.status = row.status
-    this.$confirm('确认调整该分类的状态?', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning',
-      customClass: 'customClass'
-    }).then(() => {
-      enableOrDisableEmployee({ id: this.id, status: !this.status ? 1 : 0 })
-        .then(res => {
-          if (String(res.status) === '200') {
-            this.$message.success('分类状态更改成功！')
-            this.init()
-          }
-        })
-        .catch(err => {
-          this.$message.error('请求出错了：' + err.message)
-        })
-    })
   }
 
   //删除
@@ -312,7 +273,7 @@ export default class extends Vue {
         if (value) {
           addCategory({
             name: this.classData.name,
-            type: this.type,
+            type: Number(this.type),
             sort: this.classData.sort
           })
             .then(res => {
@@ -324,7 +285,7 @@ export default class extends Vue {
                 }
                 this.init()
               } else {
-                this.$message.error(res.data.desc || res.data.msg)
+                this.$message.error(res.data.msg)
               }
             })
             .catch(err => {
@@ -338,7 +299,9 @@ export default class extends Vue {
           editCategory({
             id: this.classData.id,
             name: this.classData.name,
-            sort: this.classData.sort
+            sort: this.classData.sort,
+            // 后端修改接口要求分类类型必填，取修改弹窗打开时回填的类型
+            type: this.classData.type
           })
             .then(res => {
               if (res.data.code === 1) {
@@ -347,7 +310,7 @@ export default class extends Vue {
                 this.$refs.classData.resetFields()
                 this.init()
               } else {
-                this.$message.error(res.data.desc || res.data.msg)
+                this.$message.error(res.data.msg)
               }
             })
             .catch(err => {

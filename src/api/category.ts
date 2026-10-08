@@ -8,44 +8,34 @@ import request from '@/utils/request';
 // 查询分类列表接口
 export const getCategoryPage = (params: any) => {
   return request({
-    url: '/category/page',
+    url: '/categories',
     method: 'get',
     params
   });
 };
 
-// 删除当前列的接口
+// 删除当前列的接口：主键在路径上，后端是 DELETE /categories/{id}
 export const deleCategory = (ids: string) => {
   return request({
-    url: '/category',
-    method: 'delete',
-    params: { id:ids }
+    url: '/categories/' + ids,
+    method: 'delete'
   });
 };
 
-// 修改接口
+// 修改接口：主键在路径上，请求体只提交分类类型、名称与排序
 export const editCategory = (params: any) => {
   return request({
-    url: '/category',
+    url: '/categories/' + params.id,
     method: 'put',
-    data: { ...params }
+    data: { type: params.type, name: params.name, sort: params.sort }
   });
 };
 
 // 新增接口
 export const addCategory = (params: any) => {
   return request({
-    url: '/category',
+    url: '/categories',
     method: 'post',
     data: { ...params }
   });
 };
-
-// 修改---启用禁用接口
-export const enableOrDisableEmployee = (params: any) => {
-  return request({
-    url: `/category/status/${params.status}`,
-    method: 'post',
-    params: { id:params.id }
-  })
-}

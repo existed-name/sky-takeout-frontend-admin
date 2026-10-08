@@ -400,6 +400,21 @@
   font-size:14px;
   color:#666;
 }
+/* 自定义日期区间选择器。
+   原来这里没有任何样式规则，div 默认是块级元素，无论该行还剩多少空间都会另起一行，
+   这就是「日期选择器单独一行」的真正原因；改成行内块即可和左侧的预设区间按钮同排。
+   vertical-align:top 让它的顶边与左侧按钮组（.month ul 高 40px）以及右侧浮动的导出按钮对齐。
+   padding-left 与 .get-time 保持一致，和左边「已选时间」文字留出间距。
+   宽度收窄到 280px：Element 对 daterange 默认给 350px，在 1366px 及更窄的窗口下会被挤出本行，
+   280px 仍能完整显示「yyyy-MM-dd 至 yyyy-MM-dd」，放不下时工具栏会自然换行、不会重叠。 */
+.title-index .custom-time {
+  display:inline-block;
+  vertical-align:top;
+  padding-left:15px;
+}
+.title-index .custom-time .el-date-editor {
+  width:280px;
+}
 .sub-menu {
   position:absolute;
   width:100%;

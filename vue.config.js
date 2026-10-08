@@ -111,8 +111,25 @@ module.exports = {
       });
       return args;
     });
-  }
+  },
 
-  // devServer.proxy 本阶段刻意不配置：
-  // 保持 /api 语义不变（阶段 2 对齐后端接口时再定，见方案 §11）。
+  devServer: {
+    // 显式固定开发服务器端口。
+    // 原因：Vue CLI 3 的默认端口也是 8080，与后端端口冲突；冲突后 vue-cli-service
+    // 会用 portfinder 自动改到别的端口（端口变得不可预期）。
+    port: 8888,
+
+    proxy: {
+      // 前端 axios 的 baseURL 是 /api，接口文件里的字面量不带 /admin，
+      // 因此开发期把 /api 前缀替换为 /admin，与生产 nginx 的
+      //   location /api/ { proxy_pass http://localhost:8080/admin/; }
+      // 完全同构。生产环境不需要改动任何 nginx 配置。
+      //   /api/dishes  →  http://localhost:8080/admin/dishes
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        pathRewrite: { '^/api': '/admin' }
+      }
+    }
+  }
 };

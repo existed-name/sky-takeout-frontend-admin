@@ -54,8 +54,9 @@ export const getday = () => {
 // 获取近7日
 export const past7Day = () => {
   let toData = new Date(new Date().toLocaleDateString()).getTime();
-  let past7daysStart = toData - 7 * 3600 * 24 * 1000;
-  let past7daysEnd = toData - 1;
+  // 近 7 日按「含今天、共 7 天」计算：起点为今天向前数第 7 天（今天 − 6 天），终点为今天
+  let past7daysStart = toData - 6 * 3600 * 24 * 1000;
+  let past7daysEnd = toData;
   let days7Start = dateFormat("YYYY-mm-dd", past7daysStart);
   let days7End = dateFormat("YYYY-mm-dd", past7daysEnd);
   return [days7Start, days7End];
@@ -64,8 +65,9 @@ export const past7Day = () => {
 // 获取近30日
 export const past30Day = () => {
   let toData = new Date(new Date().toLocaleDateString()).getTime();
-  let past30daysStart = toData - 30 * 3600 * 24 * 1000;
-  let past30daysEnd = toData - 1;
+  // 近 30 日按「含今天、共 30 天」计算：起点为今天向前数第 30 天（今天 − 29 天），终点为今天
+  let past30daysStart = toData - 29 * 3600 * 24 * 1000;
+  let past30daysEnd = toData;
   let days30Start = dateFormat("YYYY-mm-dd", past30daysStart);
   let days30End = dateFormat("YYYY-mm-dd", past30daysEnd);
   return [days30Start, days30End];
@@ -74,8 +76,11 @@ export const past30Day = () => {
 export const pastWeek = () => {
   let toData = new Date(new Date().toLocaleDateString()).getTime();
   var nowDayOfWeek = new Date().getDay();
-  const weekStartData = toData - (nowDayOfWeek - 1) * 24 * 60 * 60 * 1000;
-  const weekEndData = toData + (7 - nowDayOfWeek) * 24 * 60 * 60 * 1000;
+  // getDay() 周日为 0，需换算成「距离本周一的天数」：周一 0、周二 1 …… 周日 6，
+  // 否则星期日会被算成「下周一到下周日」；区间按「周一 ~ 周日」且含今天
+  var daysFromMonday = (nowDayOfWeek + 6) % 7;
+  const weekStartData = toData - daysFromMonday * 24 * 60 * 60 * 1000;
+  const weekEndData = weekStartData + 6 * 24 * 60 * 60 * 1000;
   let weekStart = dateFormat("YYYY-mm-dd", weekStartData);
   let weekEnd = dateFormat("YYYY-mm-dd", weekEndData);
   return [weekStart, weekEnd];

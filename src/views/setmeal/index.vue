@@ -46,11 +46,10 @@
             </el-image>
           </template>
         </el-table-column>
-        <el-table-column prop="categoryName" label="套餐分类" />
         <el-table-column prop="price" label="套餐价">
           <template slot-scope="scope">
             <span>
-              ￥{{ scope.row.price.toFixed(2)*100/100 }}
+              {{ scope.row.price == null ? '—' : '￥' + Number(scope.row.price).toFixed(2) }}
             </span>
           </template>
         </el-table-column>

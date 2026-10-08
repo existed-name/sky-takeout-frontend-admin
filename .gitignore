@@ -7,6 +7,7 @@ node_modules/
 
 # Build output
 dist/
+dist-sky/
 build/
 out/
 .next/

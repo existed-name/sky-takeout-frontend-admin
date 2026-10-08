@@ -166,22 +166,14 @@ export default class extends Vue {
   private async init() {
     const id = this.$route.query.id
     queryEmployeeById(id).then((res: any) => {
-      // String(res.status) === '200'
       if (res.data.code === 1) {
         this.ruleForm = res.data.data
-        this.ruleForm.sex = res.data.data.sex === '0' ? '女' : '男'
+        // 后端员工性别是字符串："1" 表示男、"2" 表示女
+        this.ruleForm.sex = res.data.data.sex === '2' ? '女' : '男'
         // this.ruleForm.password = ''
       } else {
         this.$message.error(res.data.msg)
       }
-      // if (res.data.code == 200) {
-      //   const { data } = res.data
-      //   this.ruleForm = data
-      //   this.ruleForm.password = ''
-      //   // this.ruleForm.rePassword = '' //JSON.parse(JSON.stringify(data.password));
-      // } else {
-      //   this.$message.error(res.data.desc)
-      // }
     })
   }
 
@@ -191,7 +183,8 @@ export default class extends Vue {
         if (this.actionType === 'add') {
           const params = {
             ...this.ruleForm,
-            sex: this.ruleForm.sex === '女' ? '0' : '1'
+            // 后端员工性别只接受 "1"(男) 或 "2"(女)
+            sex: this.ruleForm.sex === '女' ? '2' : '1'
           }
           addEmployee(params)
             .then((res: any) => {
@@ -220,7 +213,8 @@ export default class extends Vue {
         } else {
           const params = {
             ...this.ruleForm,
-            sex: this.ruleForm.sex === '女' ? '0' : '1'
+            // 后端员工性别只接受 "1"(男) 或 "2"(女)
+            sex: this.ruleForm.sex === '女' ? '2' : '1'
           }
           editEmployee(params)
             .then((res: any) => {

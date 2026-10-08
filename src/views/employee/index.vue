@@ -103,7 +103,7 @@ export default class extends Vue {
     }
     await getEmployeeList(params)
       .then((res: any) => {
-        if (String(res.data.code) === '1') {
+        if (res.data.code === 1) {
           this.tableData = res.data && res.data.data && res.data.data.records
           this.counts = res.data.data.total
         }
@@ -142,9 +142,11 @@ export default class extends Vue {
     }).then(() => {
       enableOrDisableEmployee({ id: this.id, status: !this.status ? 1 : 0 })
         .then((res) => {
-          if (String(res.status) === '200') {
+          if (res.data.code === 1) {
             this.$message.success('账号状态更改成功！')
             this.init()
+          } else {
+            this.$message.error(res.data.msg)
           }
         })
         .catch((err) => {

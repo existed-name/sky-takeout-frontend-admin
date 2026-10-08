@@ -12,9 +12,8 @@ export interface IAppState {
   sidebar: {
     opened: boolean
     withoutAnimation: boolean
-    
+
   }
-  statusNumber:Number
 }
 
 @Module({ 'dynamic': true, store, 'name': 'app' })
@@ -24,7 +23,6 @@ class App extends VuexModule implements IAppState {
     'withoutAnimation': false
   }
   public device = DeviceType.Desktop
-  public statusNumber = 0
   @Mutation
   private TOGGLE_SIDEBAR(withoutAnimation: boolean) {
     this.sidebar.opened = !this.sidebar.opened
@@ -41,11 +39,6 @@ class App extends VuexModule implements IAppState {
     this.sidebar.opened = false
     this.sidebar.withoutAnimation = withoutAnimation
     setSidebarStatus('closed')
-  }
-
-  @Mutation
-  private STATUS_NUMBER(device: DeviceType) {
-    this.statusNumber = device
   }
 
   @Mutation
@@ -66,11 +59,6 @@ class App extends VuexModule implements IAppState {
   @Action
   public ToggleDevice(device: DeviceType) {
     this.TOGGLE_DEVICE(device)
-  }
-
-  @Action
-  public StatusNumber(device: any) {
-    this.STATUS_NUMBER(device)
   }
 }
 

@@ -95,11 +95,6 @@ import Breadcrumb from '@/components/Breadcrumb/index.vue'
 import Hamburger from '@/components/Hamburger/index.vue'
 import { getStatus, setStatus } from '@/api/users'
 import Cookies from 'js-cookie'
-import { debounce, throttle } from '@/utils/common'
-import { setNewData, getNewData } from '@/utils/cookies'
-
-// 接口
-import { getCountUnread } from '@/api/inform'
 // 修改密码弹层
 import Password from '../components/password.vue'
 
@@ -115,21 +110,12 @@ export default class extends Vue {
   private storeId = this.getStoreId
   private restKey: number = 0
   private websocket = null
-  private newOrder = ''
   private message = ''
-  private audioIsPlaying = false
-  private audioPaused = false
-  private statusValue = true
-  private audioUrl: './../../../assets/preview.mp3'
   private shopShow = false
   private dialogVisible = false
   private status = 1
   private setStatus = 1
   private dialogFormVisible = false
-  private ountUnread = 0
-  // get ountUnread() {
-  //   return Number(getNewData())
-  // }
   get sidebar() {
     return AppModule.sidebar
   }
@@ -159,7 +145,6 @@ export default class extends Vue {
   }
   mounted() {
     document.addEventListener('click', this.handleClose)
-    //console.log(this.$store.state.app.statusNumber)
     // const msg = {
     //   data: {
     //     type: 2,
@@ -259,18 +244,6 @@ export default class extends Vue {
       this.$router.replace({ path: '/login' })
     })
     // this.$router.push(`/login?redirect=${this.$route.fullPath}`)
-  }
-  // 获取未读消息
-  async getCountUnread() {
-    const { data } = await getCountUnread()
-    if (data.code === 1) {
-      // this.ountUnread = data.data
-      AppModule.StatusNumber(data.data)
-      // setNewData(data.data)
-      // this.$message.success('操作成功！')
-    } else {
-      this.$message.error(data.msg)
-    }
   }
   // 营业状态
   async getStatus() {

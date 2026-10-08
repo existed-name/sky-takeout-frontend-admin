@@ -1,11 +1,4 @@
 import request from '@/utils/request'
-// 修改密码
-export const editPassword = (data: any) =>
-  request({
-    'url': '/employee/editPassword',
-    'method': 'put',
-    data
-  })
   // 获取营业状态
   export const getStatus = () =>
   request({

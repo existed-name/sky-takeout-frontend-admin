@@ -38,10 +38,6 @@
             <i class="el-icon-arrow-down" />
           </el-button>
           <div v-if="shopShow" class="userList">
-            <p class="amendPwdIcon" @click="handlePwd">
-              修改密码
-              <i />
-            </p>
             <p class="outLogin" @click="logout">
               退出登录
               <i />
@@ -80,10 +76,6 @@
         </el-button>
       </span>
     </el-dialog>
-    <Password
-      :dialog-form-visible="dialogFormVisible"
-      @handleclose="handlePwdClose"
-    />
   </div>
 </template>
 
@@ -95,15 +87,12 @@ import Breadcrumb from '@/components/Breadcrumb/index.vue'
 import Hamburger from '@/components/Hamburger/index.vue'
 import { getStatus, setStatus } from '@/api/users'
 import Cookies from 'js-cookie'
-// 修改密码弹层
-import Password from '../components/password.vue'
 
 @Component({
   name: 'Navbar',
   components: {
     Breadcrumb,
     Hamburger,
-    Password,
   },
 })
 export default class extends Vue {
@@ -115,7 +104,6 @@ export default class extends Vue {
   private dialogVisible = false
   private status = 1
   private setStatus = 1
-  private dialogFormVisible = false
   get sidebar() {
     return AppModule.sidebar
   }
@@ -276,14 +264,6 @@ export default class extends Vue {
       this.getStatus()
     }
   }
-  // 修改密码
-  handlePwd() {
-    this.dialogFormVisible = true
-  }
-  // 关闭密码编辑弹层
-  handlePwdClose() {
-    this.dialogFormVisible = false
-  }
 }
 </script>
 
@@ -363,14 +343,6 @@ export default class extends Vue {
 
 .navbar .right-menu span:hover {
   background: hsla(0,0%,100%,.52);
-}
-
-.navbar .right-menu .amendPwdIcon i {
-  width: 18px;
-  height: 18px;
-  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAAAXNSR0IArs4c6QAAAy9JREFUWAntmE1oE0EUx7v5AEEUia1WUS8K1lpBKHrIRQ8iiN4EUSgoog1tCfZUUFGD3jwFISXJwVMFKR5VFAqiBw9FoSBSRPBSoWgUomCwaT78vZgZlnQ3ziYpCu7AZN7OvP//vXnzsW/T1eUXPwJ+BJpGwGo66jI4MjIyWC6X45ZlHUAl4qIm3cvVanWB9hE1mc1mC9LppXhycHp6OjgzM3MFx65jOOTJkGW9Q38ok8m88oILelGORCLX0L9JDXjB1XW7mdjpaDQ6NTs7+90Ub2xobGxsL1G7qogx9pB6iOetoVBoi1NlbBc652lzggO/vlgsZkQ2LcZLHIvFshi4KMQYfcJSHTM1Mjw8vA/d19SwYMLh8EAqlXor8p+KcQRxLqrIkG8r2aTlcLxhUo+VLgdMc6k+t9bYQQg2KRKWc17Jpi2T0phKpdJjijN2kAhoXeRlUwNKD0xJybTGh1MbtYH/KdH4LmOJ9IFC3s2p/uZlJqVSqdumbxwYbdQG1mIikVizuLiYwKEzdO7QA20Kstxwyqm+zAF61ozO1cF4PN6ztLT0HPCeZgRtjlXB38DJW248rg5ydz0AdNIGlMv2s+25VVEOyE5q7U6krRLRw9yrL5wIHffg6OjofvaMcq4cCASG0un0fSeCVvrGx8c3FAqFKbDHqRIkiaC8lVYUx83KRXpQaTK7e510TniTyWSet8lZuCvyzH4cZL87+uLYCaBPgFIgmfstdfaXV91X7CzUWdfmcrntThYcHURR9kmtcOuXldzplslrbuxom3Y7bg7adf6q7DvYbvj9CP6fEVQXaH32q7kNNDd3Yu3Sboy4VmgYeK+ecXZVkoWJiYl12NhWt/Ozt7f3o7Jpbx0dxCn97crMzvGhfsQOaleWNC6fz6fhruUC2Jujz55xaxPNspmnaB2ta0rGMQ/hJ41sUYBHnOqHa6ON4gQpl/z7sKLUZrCilw4+jC6Q0bxElGWwIOynldpWgacRf8fNOVF0XGIZmJyclBf5APUu9Qe1o4VIfoDwFM5dakbsusR2kKRCpP59zH6zvb8VORgMlkjn5nHsSyt4H+NHwI9AQwR+ATFg/+xwaeKHAAAAAElFTkSuQmCC) no-repeat;
-  background-size: contain;
-  margin-top: 8px;
 }
 
 .navbar .right-menu .outLogin i {
@@ -615,7 +587,9 @@ export default class extends Vue {
   border-radius: 4px;
   line-height: 32px;
   padding: 0 0 5px;
-  height: 105px;
+  // 面板内只剩「退出登录」一项（修改密码入口已移除），
+  // 高度按单项行高 32px 加内边距与少量留白取 70px
+  height: 70px;
 }
 
 .userInfo .userList {

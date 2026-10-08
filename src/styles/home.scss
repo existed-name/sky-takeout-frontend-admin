@@ -1,0 +1,10 @@
+// 占位文件（空）。
+//
+// 说明：原工程的 home.scss 内容不可还原 —— 原始 SCSS 源码既不随产物发布，也不在
+// `dist/sky/js/*.js.map` 的 sourcesContent 中（map 内 `.scss` 条目只有
+// `// extracted by mini-css-extract-plugin` 与 ICSS 导出）。
+// 按 Final Impl Plan §7.2 步骤 6 的「单文件策略」（R13），全部非 element 全局规则已合并到
+// `src/styles/newRJWMsystem.scss`；本文件保留原名与空内容，只为让 `src/main.ts` 的
+// `import '@/styles/home.scss'` 逐字不变。
+//
+// 本文件不得写入任何规则。

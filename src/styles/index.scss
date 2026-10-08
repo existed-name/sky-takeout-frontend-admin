@@ -1,0 +1,50 @@
+// 全局样式入口：基础 reset。
+// 说明：原工程 index.scss 的精确内容不可还原（原始 SCSS 文本不在 source map 中），
+// 这里只承载「与 element 主题无关的基础 reset」；其余非 element 全局规则已按单文件策略
+// 合并到 newRJWMsystem.scss（Final Impl Plan §7.2 步骤 6 / R13）。
+// 注意：本文件不得 @import newRJWMsystem.scss —— main.ts 已单独 import 该文件，
+// 重复导入会产生重复 CSS。
+
+body {
+  min-width:1000px;
+  -moz-osx-font-smoothing:grayscale;
+  -webkit-font-smoothing:antialiased;
+  font-size:14px;
+  font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica Neue,Helvetica,PingFang SC,Hiragino Sans GB,Microsoft YaHei,Arial,sans-serif;
+}
+#app,body,html {
+  height:100%;
+}
+*,:after,:before {
+  -webkit-box-sizing:border-box;
+  box-sizing:border-box;
+}
+a,a:focus,a:hover {
+  color:inherit;
+  outline:none;
+  text-decoration:none;
+}
+div:focus {
+  outline:none;
+}
+.clearfix:after {
+  content:"";
+  display:table;
+  clear:both;
+}
+.app-container {
+  padding:20px;
+}
+input::-webkit-inner-spin-button,input::-webkit-outer-spin-button {
+  -webkit-appearance:none;
+}
+input[type=number] {
+  -moz-appearance:textfield;
+}
+div,h1,h2,h3,h4,h5,h6,li,p,ul {
+  padding:0;
+  margin:0;
+}
+li {
+  list-style:none;
+}

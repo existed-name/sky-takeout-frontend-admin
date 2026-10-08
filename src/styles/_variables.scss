@@ -1,0 +1,19 @@
+// 全局 SCSS 变量。
+//
+// 说明（见 Final Impl Plan §2.7 / §7.3）：
+//   原始 `_variables.scss` 只有 3 个变量能从产物中确证 —— 它们以 css-loader 的 ICSS
+//   `:export` 形式出现在产物 CSS 里（形如 `<scoped 选择器>:export{menuBg:#343744;...}`），
+//   被 style-resources-loader 注入到每个 scss 样式块中，并在
+//   `src/layout/components/Sidebar/index.vue` 里作为 JS 模块导出被读取，
+//   用于绑定 `el-menu` 的 background-color / text-color / active-text-color。
+//   其余 SCSS 变量编译后已是字面值，变量语义不可恢复，本文件不臆造任何变量名。
+$menuBg: #343744;
+$menuText: #bfcbd9;
+$menuActiveText: #ffc200;
+
+// 键名与取值必须与产物逐字一致，否则侧边栏配色会出错。
+:export {
+  menuBg: $menuBg;
+  menuText: $menuText;
+  menuActiveText: $menuActiveText;
+}

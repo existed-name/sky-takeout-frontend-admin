@@ -16,7 +16,7 @@
             已启售
           </span>
           <span class="num">
-            {{ setMealData.sold }}
+            {{ setMealData.onSale }}
           </span>
         </li>
         <li>

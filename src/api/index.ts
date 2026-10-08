@@ -2,26 +2,27 @@ import request from '@/utils/request'
 // 订单管理
   export const getOrderData = () =>
   request({
-    'url': `/workspace/overviewOrders`,
+    'url': `/workspace/overview/orders`,
     'method': 'get'
   })
 // 菜品总览
 export const getOverviewDishes = () =>
 request({
-  'url': `/workspace/overviewDishes`,
+  'url': `/workspace/overview/dishes`,
   'method': 'get'
 })
 // 套餐总览
 export const getSetMealStatistics = () =>
 request({
-  'url': `/workspace/overviewSetmeals`,
+  'url': `/workspace/overview/setmeals`,
   'method': 'get'
 })
 // 营业数据
-export const getBusinessData= () =>
+export const getBusinessData = (params: any) =>
 request({
-  'url': `/workspace/businessData`,
-  'method': 'get'
+  'url': `/workspace/overview/data`,
+  'method': 'get',
+  params
 })
 /**
  *

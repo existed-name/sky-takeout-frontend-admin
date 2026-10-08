@@ -46,8 +46,8 @@ export const get1stAndToday = () => {
 export const getday = () => {
   let toData = new Date(new Date().toLocaleDateString()).getTime();
   let yesterdays= toData - 3600 * 24 * 1000;
-  let yesterday = dateFormat("YYYY.mm.dd", yesterdays);
-  let today = dateFormat("YYYY.mm.dd", toData);
+  let yesterday = dateFormat("YYYY-mm-dd", yesterdays);
+  let today = dateFormat("YYYY-mm-dd", toData);
   return [yesterday,today];
 };
 

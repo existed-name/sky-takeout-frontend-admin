@@ -21,6 +21,7 @@ import {
   getOverviewDishes, //菜品总览
   getSetMealStatistics, //套餐总览
 } from '@/api/index'
+import { getday } from '@/utils/formValidate'
 import { getOrderListBy } from '@/api/order'
 // 组件
 // 营业数据
@@ -70,7 +71,7 @@ export default class extends Vue {
   }
   // 获取营业数据
   async getBusinessData() {
-    const data = await getBusinessData()
+    const data = await getBusinessData({ date: getday()[1] })
     this.overviewData = data.data.data
   }
   // 获取今日订单

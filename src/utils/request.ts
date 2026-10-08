@@ -1,5 +1,4 @@
-import axios, { AxiosAdapter } from 'axios'
-import { Message, MessageBox } from 'element-ui'
+import axios from 'axios'
 import { UserModule } from '@/store/modules/user'
 import {
   getRequestKey,
@@ -76,11 +75,6 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   (response: any) => {
     // console.log(response, 'response')
-    if (response.data.status === 401) {
-      router.push('/login')
-      // const res = response.data
-      // return response
-    }
     //请求响应中的config的url会带上代理的api需要去掉
     response.config.url = response.config.url.replace('/api', '')
     // 请求完成，删除请求中状态
@@ -95,6 +89,7 @@ service.interceptors.response.use(
     //   // window.location.href = '/login'
     //   // return false
     // } else
+    // 成功与否由各页面按 code === 1 判定，此处不做统一拦截
     if (response.data.code === 1) {
       // const res = response.data
       return response
@@ -112,11 +107,14 @@ service.interceptors.response.use(
           error.message = '请求错误'
       }
     }
-    //请求响应中的config的url会带上代理的api需要去掉
-    error.config.url = error.config.url.replace('/api', '')
-    // 请求完成，删除请求中状态
-    const key = getRequestKey(error.config);
-    removePending(key);
+    // 请求被取消（例如重复请求被 CancelToken 取消）时错误对象上没有 config，
+    // 需先判空再取 url，否则会抛 TypeError 把真实原因掩盖掉
+    if (error && error.config && error.config.url) {
+      // 请求响应中的 config 的 url 会带上代理的 api 需要去掉
+      error.config.url = error.config.url.replace('/api', '')
+      // 请求完成，删除请求中状态
+      removePending(getRequestKey(error.config))
+    }
     // console.log(error, pending, 'error11')
     // Message({
     //   'message': error.message,

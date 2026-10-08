@@ -80,13 +80,6 @@ request({
     'method': 'get',
     params
   })
-  // 数据概览
-  export const getDataOverView= (params: any) =>
-  request({
-    'url': `/report/dataOverView`,
-    'method': 'get',
-    params
-  })
   // 导出
   export function exportInfor() {
     return request({

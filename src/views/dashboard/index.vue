@@ -17,7 +17,6 @@
 import { Component, Vue } from 'vue-property-decorator'
 import {
   getBusinessData,
-  getDataOverView, //营业数据
   getOrderData, //订单管理今日订单
   getOverviewDishes, //菜品总览
   getSetMealStatistics, //套餐总览

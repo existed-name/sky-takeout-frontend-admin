@@ -66,18 +66,6 @@ export const queryDishList = (params: any) => {
   })
 }
 
-// 文件down预览
-export const commonDownload = (params: any) => {
-  return request({
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
-    },
-    url: '/common/download',
-    method: 'get',
-    params
-  })
-}
-
 // 起售停售---起售停售接口
 export const dishStatusByStatus = (params: any) => {
   return request({

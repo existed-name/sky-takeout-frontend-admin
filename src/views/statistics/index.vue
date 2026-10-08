@@ -6,7 +6,7 @@
       <UserStatistics :userdata="userData" />
     </div>
     <div class="homeMain homecon">
-      <OrderStatistics :orderdata="orderData" :overviewData="overviewData" />
+      <OrderStatistics :orderdata="orderData" />
       <Top :top10data="top10Data" />
     </div>
   </div>
@@ -21,7 +21,6 @@ import {
   pastMonth,
 } from '@/utils/formValidate'
 import {
-  getDataOverView, //数据概览
   getTurnoverStatistics,
   getUserStatistics,
   getOrderStatistics,
@@ -49,7 +48,6 @@ import Top from './components/top10.vue'
   },
 })
 export default class extends Vue {
-  private overviewData = {} as any
   private flag = 2
   private tateData = []
   private turnoverData = {} as any

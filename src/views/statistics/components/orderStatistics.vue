@@ -58,7 +58,6 @@ import * as echarts from 'echarts'
 })
 export default class extends Vue {
   @Prop() private orderdata!: any
-  @Prop() private overviewData!: any
 
   @Watch('orderdata')
   getData() {

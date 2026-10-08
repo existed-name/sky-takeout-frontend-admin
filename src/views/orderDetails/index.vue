@@ -31,7 +31,7 @@
             </span>
           </template>
         </el-table-column>
-        <el-table-column v-if="[0,5,6].includes(orderStatus)" :key="'consignee'" prop="consignee" label="用户名" show-overflow-tooltip />
+        <el-table-column v-if="[0,5,6].includes(orderStatus)" :key="'consignee'" prop="userName" label="用户名" show-overflow-tooltip />
         <el-table-column v-if="[0,5,6].includes(orderStatus)" :key="'phone'" prop="phone" label="手机号" />
         <el-table-column v-if="[0,2,3,4,5,6].includes(orderStatus)" :key="'address'" prop="address" label="地址" :class-name="orderStatus===6?'address':''" />
         <el-table-column v-if="[0,6].includes(orderStatus)" :key="'orderTime'" prop="orderTime" label="下单时间" class-name="orderTime" min-width="110" />
@@ -47,7 +47,6 @@
           </template>
         </el-table-column>
         <el-table-column v-if="[2,3,4,5].includes(orderStatus)" :key="'remark'" prop="remark" label="备注" align="center" />
-        <el-table-column v-if="[2,3,4].includes(orderStatus)" :key="'tablewareNumber'" prop="tablewareNumber" label="餐具数量" align="center" min-width="80" />
         <el-table-column prop="btn" label="操作" align="center" :class-name="orderStatus===0?'operate':'otherOperate'" :min-width="[2,3,4].includes(orderStatus)?130:[0].includes(orderStatus)?140:'auto'">
           <template slot-scope="{ row }">
             <div class="before">
@@ -188,7 +187,7 @@
                 菜品小计
               </label>
               <span>
-                ￥{{ (diaForm.amount-6-diaForm.packAmount).toFixed(2) }}
+                ￥{{ (diaForm.amount-diaForm.packAmount).toFixed(2) }}
               </span>
             </div>
           </div>
@@ -204,15 +203,7 @@
                   菜品小计：
                 </span>
                 <span class="amount-price">
-                  ￥{{ (diaForm.amount-6-diaForm.packAmount).toFixed(2)*100/100 }}
-                </span>
-              </div>
-              <div class="send-amount">
-                <span class="amount-name">
-                  派送费：
-                </span>
-                <span class="amount-price">
-                  ￥{{ 6 }}
+                  ￥{{ (diaForm.amount-diaForm.packAmount).toFixed(2)*100/100 }}
                 </span>
               </div>
               <div class="package-amount">

@@ -91,13 +91,6 @@
               </template>
             </el-table-column>
             <el-table-column
-              v-if="status===3"
-              prop="tablewareNumber"
-              label="餐具数量"
-              min-width="80"
-              align="center"
-            />
-            <el-table-column
               label="操作"
               align="center"
               :class-name="dialogOrderStatus===0?'operate':'otherOperate'"
@@ -267,7 +260,7 @@
                 菜品小计
               </label>
               <span>
-                ￥{{ (diaForm.amount-6-diaForm.packAmount).toFixed(2) }}
+                ￥{{ (diaForm.amount-diaForm.packAmount).toFixed(2) }}
               </span>
             </div>
           </div>
@@ -283,15 +276,7 @@
                   菜品小计：
                 </span>
                 <span class="amount-price">
-                  ￥{{ (diaForm.amount-6-diaForm.packAmount).toFixed(2)*100/100 }}
-                </span>
-              </div>
-              <div class="send-amount">
-                <span class="amount-name">
-                  派送费：
-                </span>
-                <span class="amount-price">
-                  ￥{{ 6 }}
+                  ￥{{ (diaForm.amount-diaForm.packAmount).toFixed(2)*100/100 }}
                 </span>
               </div>
               <div class="package-amount">

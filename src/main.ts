@@ -11,7 +11,7 @@ import '@/styles/home.scss'
 import 'vue-area-linkage/dist/index.css'
 
 import * as echarts from 'echarts'
-// 苍穹外卖样式表
+// 品牌主题样式表（品牌名统一由 src/config/brand.json 维护）
 import '@/styles/newRJWMsystem.scss'
 import '@/styles/icon/iconfont.css'
 import App from '@/App.vue'

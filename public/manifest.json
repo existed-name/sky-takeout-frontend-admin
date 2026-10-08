@@ -1,6 +1,6 @@
 {
-  "name": "瑞吉外卖",
-  "short_name": "瑞吉外卖",
+  "name": "__BRAND_NAME__",
+  "short_name": "__BRAND_NAME__",
   "icons": [
     {
       "src": "./img/icons/android-chrome-192x192.png",

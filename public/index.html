@@ -6,14 +6,14 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <!--[if IE]><link rel="icon" href="favicon.ico" type="image/x-icon" /><![endif]-->
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
-    <title>瑞吉外卖</title>
+    <title><%= htmlWebpackPlugin.options.brandName %></title>
     <link rel="icon" type="image/png" sizes="32x32" href="img/icons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="img/icons/favicon-16x16.png">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4DBA87">
     <meta name="apple-mobile-web-app-capable" content="no">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="瑞吉外卖">
+    <meta name="apple-mobile-web-app-title" content="<%= htmlWebpackPlugin.options.brandName %>">
     <link rel="apple-touch-icon" href="img/icons/apple-touch-icon-152x152.png">
     <link rel="mask-icon" href="img/icons/safari-pinned-tab.svg" color="#4DBA87">
     <meta name="msapplication-TileImage" content="img/icons/msapplication-icon-144x144.png">
@@ -21,7 +21,7 @@
   </head>
   <body>
     <noscript>
-      <strong>We're sorry but 瑞吉外卖 doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+      <strong>We're sorry but <%= htmlWebpackPlugin.options.brandName %> doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
     </noscript>
     <div id="app"></div>
   </body>

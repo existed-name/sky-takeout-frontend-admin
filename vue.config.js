@@ -6,6 +6,12 @@
  */
 const path = require('path');
 
+// 品牌名的唯一来源（文件已入库，构建期与运行期都从这里取值）：
+//   - 构建期：本文件 require 它，注入 index.html 模板与 manifest.json 的拷贝流程；
+//   - 运行期：src/** 通过 `import brand from '@/config/brand.json'` 导入。
+// 因此修改 src/config/brand.json 一处，就能让页面标题、PWA 名称、路由标题同步生效。
+const brand = require('./src/config/brand.json');
+
 module.exports = {
   // 产物 index.html 内全为相对路径、且 app 里存在 c.p=""、base:"" → 原构建 publicPath 为空串。
   // 同时这决定了 router.ts 里 process.env.BASE_URL 的编译结果为空串。
@@ -71,6 +77,40 @@ module.exports = {
         });
         return options;
       });
+
+    // 品牌名注入之一：index.html 模板。
+    // public/index.html 是 html-webpack-plugin 的 EJS 模板，Vue CLI 已为其提供插值能力；
+    // 这里往插件选项上挂一个 brandName，模板内用
+    //   <%= htmlWebpackPlugin.options.brandName %>
+    // 取值，从而与 src/config/brand.json 保持同源。
+    config.plugin('html').tap(args => {
+      args[0].brandName = brand.brandName;
+      return args;
+    });
+
+    // 品牌名注入之二：public/manifest.json。
+    // manifest.json 属于 public/ 下的静态文件、由 copy-webpack-plugin 原样拷贝，走不到 HTML 模板那条链路；
+    // 因此给 Vue CLI 自带的拷贝规则追加 transform，把文件里的占位符 __BRAND_NAME__ 替换为品牌名。
+    // 未引入新依赖：copy-webpack-plugin 是 Vue CLI 自带依赖。
+    config.plugin('copy').tap(args => {
+      const patterns = args[0];
+      patterns.forEach(pattern => {
+        const originalTransform = pattern.transform;
+        pattern.transform = (content, absolutePath) => {
+          const transformed = originalTransform
+            ? originalTransform(content, absolutePath)
+            : content;
+          // 仅处理 manifest.json，其余文件（含 favicon/图片等二进制）原样返回。
+          if (absolutePath && absolutePath.endsWith('manifest.json')) {
+            return transformed
+              .toString('utf8')
+              .replace(/__BRAND_NAME__/g, brand.brandName);
+          }
+          return transformed;
+        };
+      });
+      return args;
+    });
   }
 
   // devServer.proxy 本阶段刻意不配置：

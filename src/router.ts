@@ -13,6 +13,7 @@ import {
   removeUserInfo
 } from "@/utils/cookies";
 import store from "@/store";
+import brand from "@/config/brand.json";
 
 Vue.use(Router);
 
@@ -29,12 +30,12 @@ const router = new Router({
       path: "/login",
       component: () =>
         import(/* webpackChunkName: "login" */ "@/views/login/index.vue"),
-      meta: { title: "苍穹外卖", hidden: true, notNeedAuth: true }
+      meta: { title: brand.brandName, hidden: true, notNeedAuth: true }
     },
     {
       path: "/404",
       component: () => import(/* webpackChunkName: "404" */ "@/views/404.vue"),
-      meta: { title: "苍穹外卖", hidden: true, notNeedAuth: true }
+      meta: { title: brand.brandName, hidden: true, notNeedAuth: true }
     },
     {
       path: "/",

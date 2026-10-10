@@ -174,7 +174,7 @@
 
 > 以下为对齐改造前的字段级观察，用于追溯当时的处理判断；当前源码已按此调整，本节不代表现存问题。
 
-### 4.1 前端读取但后端未返回的字段（会导致展示为空或报错）
+### 4.1 前端读取但后端未返回的字段（改造前的观察，供追溯；当时会导致展示为空或报错）
 
 | # | 位置 | 字段 | 后果 |
 |---|---|---|---|
@@ -191,7 +191,7 @@
 | 11 | `src/views/dashboard/components/cuisineStatistics.vue`、`setMealStatistics.vue` | `sold` | 后端字段名是 `onSale`，`sold` 不存在，「已启售」数字恒为空 |
 | 12 | `src/views/statistics/index.vue` | 对 `dateList` / `turnoverList` / `totalUserList` / `newUserList` / `nameList` / `numberList` 调 `.split(',')` | 这些字段在后端已改为对象数组，对其调用 `.split` 会抛 `TypeError`，图表整块空白 |
 
-### 4.2 后端返回但前端未使用的字段（属浪费项，不是错误）
+### 4.2 后端返回但前端未使用的字段（改造前的观察，供追溯；属浪费项，不是错误）
 
 | # | 来源端点 | 字段 | 说明 |
 |---|---|---|---|

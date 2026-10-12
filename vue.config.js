@@ -129,6 +129,18 @@ module.exports = {
         target: 'http://localhost:8080',
         changeOrigin: true,
         pathRewrite: { '^/api': '/admin' }
+      },
+
+      // 开发期 WebSocket 转发：
+      // 页面的 WebSocket 地址已改为由 location 运行时推导（见 Navbar/index.vue），
+      // 开发服务器上页面在 8888 端口，推导出来是 ws://localhost:8888/ws/xxx，
+      // 若不在这里转发，它会连到开发服务器而不是后端，导致开发期实时来单提醒反而失效。
+      // 生产环境由 nginx 的 location /ws/ 负责转发，与此同构。
+      //   ws://localhost:8888/ws/xxx  →  ws://localhost:8080/ws/xxx
+      '/ws': {
+        target: 'ws://localhost:8080',
+        changeOrigin: true,
+        ws: true
       }
     }
   }

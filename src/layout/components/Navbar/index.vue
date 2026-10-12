@@ -16,11 +16,14 @@
     </div>
     <div :key="restKey" class="right-menu">
       <div class="rightStatus">
-        <audio ref="audioVo" hidden>
-          <source src="@/assets/preview.mp3" type="audio/mp3" />
+        <!-- 提示音：source 的 type 必须写合法 MIME，MP3 是 audio/mpeg；
+             写成 audio/mp3 不是标准 MIME，浏览器可能据此直接跳过该 source 导致无声。
+             preload="auto" 让音频提前加载，收到推送时可立即出声、不因临时加载而卡顿。 -->
+        <audio ref="audioVo" preload="auto" hidden>
+          <source src="@/assets/preview.mp3" type="audio/mpeg" />
         </audio>
-        <audio ref="audioVo2" hidden>
-          <source src="@/assets/reminder.mp3" type="audio/mp3" />
+        <audio ref="audioVo2" preload="auto" hidden>
+          <source src="@/assets/reminder.mp3" type="audio/mpeg" />
         </audio>
         <span class="navicon operatingState" @click="handleStatus">
           <i />
@@ -104,6 +107,16 @@ export default class extends Vue {
   private dialogVisible = false
   private status = 1
   private setStatus = 1
+  // 断线重连定时器：非空表示已排队一次重连，避免重复排队
+  private reconnectTimer: any = null
+  // 组件是否已销毁：销毁后不再重连
+  private isDestroyed = false
+  // 是否已在用户交互时解锁过音频（浏览器自动播放策略所需）
+  private audioUnlockDone = false
+  // 「自动播放被拦截」的提示是否已显示过，避免每条消息都弹一次
+  private audioTipShown = false
+  // 「连接错误」的提示是否已显示过，避免后端宕机时反复弹窗
+  private socketErrorNotified = false
   get sidebar() {
     return AppModule.sidebar
   }
@@ -133,6 +146,11 @@ export default class extends Vue {
   }
   mounted() {
     document.addEventListener('click', this.handleClose)
+    // 浏览器自动播放策略要求：页面必须先有过用户交互，才允许用代码播放带声音的音频。
+    // 这里在首次点击 / 按键 / 触摸时解锁音频（见 unlockAudio），解锁前收到推送会给出可见提示。
+    document.addEventListener('click', this.unlockAudio)
+    document.addEventListener('keydown', this.unlockAudio)
+    document.addEventListener('touchstart', this.unlockAudio)
     // const msg = {
     //   data: {
     //     type: 2,
@@ -148,14 +166,34 @@ export default class extends Vue {
   onload() {
   }
   destroyed() {
-    this.websocket.close() //离开路由之后断开websocket连接
+    // 标记销毁：停止后续重连，并断开当前连接
+    this.isDestroyed = true
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer)
+      this.reconnectTimer = null
+    }
+    if (this.websocket) {
+      this.websocket.close() //离开路由之后断开websocket连接
+    }
+    document.removeEventListener('click', this.handleClose)
+    document.removeEventListener('click', this.unlockAudio)
+    document.removeEventListener('keydown', this.unlockAudio)
+    document.removeEventListener('touchstart', this.unlockAudio)
   }
 
   // 添加新订单提示弹窗
   webSocket() {
     const that = this as any
     let clientId = Math.random().toString(36).substr(2)
-    let socketUrl = process.env.VUE_APP_SOCKET_URL + clientId
+    // WebSocket 地址不能写死（例如 ws://localhost/ws/）：
+    // 构建时写死的主机会被编译进产物，部署到公网后浏览器里的 localhost 指的是「访问者自己的电脑」，
+    // 而不是服务器，结果就是实时来单提醒永远连不上，而页面其它部分看着一切正常，极难排查。
+    // 因此改为由当前页面的 location 在运行时推导，本地开发、公网 IP、将来换域名或上 HTTPS 都不用改代码：
+    //   - 协议：https 页面用 wss、http 页面用 ws（将来上 HTTPS 时自动适配）
+    //   - 主机：location.host 含端口，非 80 端口部署也能连对
+    //   - 路径：仍走 /ws/，开发期由 devServer 代理、生产由 nginx 转发到后端，与 /api 的思路一致
+    const wsProtocol = location.protocol === 'https:' ? 'wss://' : 'ws://'
+    const socketUrl = wsProtocol + location.host + '/ws/' + clientId
     console.log(socketUrl, 'socketUrl')
     if (typeof WebSocket == 'undefined') {
       that.$notify({
@@ -169,20 +207,32 @@ export default class extends Vue {
       // 监听socket打开
       this.websocket.onopen = function () {
         console.log('浏览器WebSocket已打开')
+        // 连接恢复正常后，允许下次出错时重新提示一次
+        that.socketErrorNotified = false
       }
       // 监听socket消息接收
       this.websocket.onmessage = function (msg) {
-        // 转换为json对象
-        that.$refs.audioVo.currentTime = 0
-        that.$refs.audioVo2.currentTime = 0
-
-        console.log(msg, JSON.parse(msg.data), 'msg')
+        // 先解析消息；后端可能推送非预期格式（心跳、纯文本等），
+        // 解析失败只记录日志并返回，不能让异常导致整个连接不可用。
+        let jsonMsg: any
+        try {
+          jsonMsg = JSON.parse(msg.data)
+        } catch (e) {
+          console.warn('收到无法解析的WebSocket消息：', msg.data)
+          return
+        }
+        console.log(msg, jsonMsg, 'msg')
         // const h = this.$createElement
-        const jsonMsg = JSON.parse(msg.data)
         if (jsonMsg.type === 1) {
-          that.$refs.audioVo.play()
+          // 来单提醒（新订单）
+          that.playAudio('audioVo')
         } else if (jsonMsg.type === 2) {
-          that.$refs.audioVo2.play()
+          // 客户催单
+          that.playAudio('audioVo2')
+        } else {
+          // 未知类型：不弹窗、不跳转，避免干扰店员
+          console.warn('收到未知类型的WebSocket消息：', jsonMsg)
+          return
         }
         that.$notify({
           title: jsonMsg.type === 1 ? '待接单' : '催单',
@@ -208,6 +258,11 @@ export default class extends Vue {
       }
       // 监听socket错误
       this.websocket.onerror = function () {
+        // 后端宕机时错误会反复触发，只提示一次，避免刷屏
+        if (that.socketErrorNotified) {
+          return
+        }
+        that.socketErrorNotified = true
         that.$notify({
           title: '错误',
           message: '服务器错误，无法接收实时报警信息',
@@ -217,9 +272,101 @@ export default class extends Vue {
       }
       // 监听socket关闭
       this.websocket.onclose = function () {
-        console.log('WebSocket已关闭')
+        console.log('WebSocket已关闭，5秒后尝试重连')
+        that.scheduleReconnect()
       }
     }
+  }
+
+  // 播放提示音。
+  // play() 返回 Promise，浏览器拦截自动播放时会 reject；
+  // 若不接住，只会输出 Uncaught (in promise) DOMException，页面毫无提示，问题极难察觉。
+  private playAudio(refName: string) {
+    const audio = (this.$refs as any)[refName] as HTMLAudioElement
+    if (!audio || typeof audio.play !== 'function') {
+      return
+    }
+    try {
+      audio.currentTime = 0
+    } catch (e) {
+      // 音频尚未加载元数据时设置 currentTime 可能抛错，忽略即可，不影响后续播放
+    }
+    const result = audio.play()
+    if (result && typeof result.catch === 'function') {
+      result.catch((err: any) => {
+        if (err && err.name === 'NotAllowedError') {
+          // 未获得用户交互授权，给出可见引导
+          this.notifyAudioBlocked()
+        } else {
+          console.warn('提示音播放失败：', err)
+        }
+      })
+    }
+  }
+
+  // 在首次用户交互时解锁音频：
+  // 浏览器在没有用户交互前，会拒绝带声音的 play()（NotAllowedError）。
+  // 借这次点击/按键/触摸的手势把两段音频各空播一次并立即暂停，
+  // 让浏览器把它们标记为「已获授权」，之后后台推送到达时才能真正出声。
+  private unlockAudio() {
+    if (this.audioUnlockDone) {
+      return
+    }
+    this.audioUnlockDone = true
+    ;['audioVo', 'audioVo2'].forEach((name) => {
+      const audio = (this.$refs as any)[name] as HTMLAudioElement
+      if (!audio || typeof audio.play !== 'function') {
+        return
+      }
+      // 解锁期间静音，避免首次点击时真的响一声打扰店员
+      const wasMuted = audio.muted
+      audio.muted = true
+      const restore = () => {
+        audio.pause()
+        audio.currentTime = 0
+        audio.muted = wasMuted
+      }
+      const result = audio.play()
+      if (result && typeof result.then === 'function') {
+        result.then(restore).catch(() => {
+          // 解锁失败不提示，等真正有推送时再由 playAudio 统一提示
+          audio.muted = wasMuted
+        })
+      } else {
+        restore()
+      }
+    })
+  }
+
+  // 自动播放被浏览器拦截时的可见提示：
+  // 给店员一个明确的「点一下页面就有声音」的引导，只提示一次，避免每条消息都弹窗。
+  private notifyAudioBlocked() {
+    if (this.audioTipShown) {
+      return
+    }
+    this.audioTipShown = true
+    this.$notify({
+      title: '声音提醒',
+      message:
+        '为避免打扰，浏览器拦截了自动播放。点击页面任意位置后，新订单与催单提示音即可正常播放。',
+      type: 'warning',
+      duration: 0,
+    })
+  }
+
+  // 断线重连：后端重启或网络抖动都会触发 onclose，若不重连，
+  // 当前标签页会永久静默、只能人工刷新，对「实时来单」是致命的。
+  // 固定 5 秒后重试一次；组件销毁后停止。
+  private scheduleReconnect() {
+    if (this.isDestroyed || this.reconnectTimer) {
+      return
+    }
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null
+      if (!this.isDestroyed) {
+        this.webSocket()
+      }
+    }, 5000)
   }
 
   private toggleSideBar() {

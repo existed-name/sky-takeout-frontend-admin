@@ -1,0 +1,81 @@
+# ============================================================================
+# 管理端前端镜像：容器内多阶段构建（不依赖、也不使用本机的全局 Node）
+#
+# 构建命令（必须在【前端仓库根目录】执行，因为构建上下文是仓库根）：
+#     docker build -f deploy/Dockerfile.frontend -t sky-admin-web:1.0.0 .
+#
+# 仓库根目录的 .dockerignore 负责挡掉 node_modules、dist、dist-sky、draft、.env* 等，
+# 它们不会进入构建上下文。
+# ============================================================================
+
+
+# ---------- 构建阶段 ----------
+# 固定 node:16.20.2，原因有二：
+#   1. 与本工程「基准产物」所用的 Node 版本一致，产出的文件名哈希与基准相符；
+#   2. 构建全程在容器内完成，完全不触碰、不依赖本机安装的 Node 版本。
+FROM node:16.20.2 AS build
+
+WORKDIR /app
+
+# 容器内没有本机的 npm 配置，这里显式指定国内镜像源（可在构建时用 --build-arg 覆盖）。
+ARG NPM_REGISTRY=https://registry.npmmirror.com
+
+# 先只复制依赖清单，让「安装依赖」单独成层、可被缓存复用；
+# 用 package-lock.json 精确安装（npm ci），保证依赖版本可复现。
+# 注意：必须包含 devDependencies（下方没有 --omit=dev），
+#       因为 vue-cli-service、sass 等构建工具都在 devDependencies 里。
+COPY package.json package-lock.json ./
+RUN npm ci --registry=${NPM_REGISTRY}
+
+# 复制工程源码。node_modules / dist / dist-sky / draft / .env* 已被
+# 仓库根目录的 .dockerignore 挡在构建上下文之外，不会出现在这里。
+COPY . .
+
+# ----------------------------------------------------------------------------
+# 为什么必须在这里用 ARG/ENV 显式注入环境变量，而不能依赖工作区里的 .env 文件：
+#
+#   本仓库的 .env / .env.development / .env.production 都没有纳入 git
+#   （.gitignore 只放行 .env.example 与 .env.*.example），它们只存在于开发者的本机工作区。
+#   一旦换一台机器或新克隆仓库，构建上下文里就没有 .env.production，
+#   于是 VUE_APP_BASE_API 缺失，src/utils/request.ts 里的 axios baseURL 被编译成 undefined，
+#   全站请求打到根路径、全部 404 —— 而且构建过程【不会报任何错】，属于静默的产物错误。
+#
+#   因此生产构建所需的变量在这里显式提供。
+#   另外，操作系统环境变量的优先级高于 .env 文件，所以即使构建上下文里恰好带了
+#   .env.production，也仍然以这里提供的值为准，从而消除环境差异。
+# ----------------------------------------------------------------------------
+
+# 接口基础地址前缀，对应 src/utils/request.ts 的 axios baseURL。
+# 生产环境由 nginx 把 /api/ 反向代理并重写为后端的 /admin/，所以固定为 /api。
+ARG VUE_APP_BASE_API=/api
+ENV VUE_APP_BASE_API=${VUE_APP_BASE_API}
+
+# 是否开启删除权限校验，对应 src/utils/common.ts 的 checkProcessEnv()。
+ARG VUE_APP_DELETE_PERMISSIONS=false
+ENV VUE_APP_DELETE_PERMISSIONS=${VUE_APP_DELETE_PERMISSIONS}
+
+# 关于 VUE_APP_SOCKET_URL：这里【故意不注入】。
+# 前端 WebSocket 地址已改为在运行时由浏览器当前地址推导
+# （src/layout/components/Navbar/index.vue 用 location.protocol + location.host + '/ws/'），
+# 源码不再读取该变量，所以换 IP、加域名、上 HTTPS 都不需要重新构建镜像。
+
+# 执行生产构建。package.json 的 build 脚本会先跑 `npm run env:check`（scripts/env-assert.js）。
+# 该脚本只断言 Node 主版本不低于 14：node:16.20.2 恰好命中其「推荐/基准版本」，直接放行（退出码 0），
+# 因此容器内既不需要跳过它、也不需要改动它。
+# 产物输出目录为 dist-sky/sky（见 vue.config.js 的 outputDir）。
+RUN npm run build
+
+
+# ---------- 运行阶段 ----------
+# 用 nginx 托管静态文件。站点配置不打进镜像，改由 compose 以只读方式挂载到
+# /etc/nginx/conf.d/default.conf，这样改配置只需重启容器、不用重建镜像。
+FROM nginx:1.27-alpine
+
+# 直接把构建产物目录整体作为 nginx 的 web 根。
+# dist-sky/sky 的最外层就是 index.html，另外还有 css/ js/ img/ fonts/ media/ 等子目录，
+# 产物内部资源都是相对路径，挂在根路径 / 下最稳妥。
+# 不要把 dist-sky（多一层目录）或 dist（旧部署的基准产物）拷进来。
+COPY --from=build /app/dist-sky/sky /usr/share/nginx/html
+
+EXPOSE 80
+# 沿用 nginx 官方镜像默认的启动命令（前台运行 nginx），这里不覆盖。

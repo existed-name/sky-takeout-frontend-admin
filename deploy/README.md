@@ -272,7 +272,7 @@ curl -i http://localhost/api/dishes            # 从服务器内部直接打接�
 - **前端白屏 / 资源 404**：多半是挂载的 `root` 层不对或浏览器缓存了旧 `index.html`（`docker compose exec sky-nginx ls /usr/share/nginx/html` 应直接看到 `index.html`、`css`、`js`），并 Ctrl+F5 强刷。
 - **图片上传失败**：413 表示 `client_max_body_size` 太小；其它错误对照本机 `application-dev.yml` 的 OSS 四项逐字比对。
 - **重建后端容器后页面 502**：nginx 会缓存后端容器 IP，`docker compose restart sky-nginx` 即可。
-- **长时间后不再弹提醒**：见上面 WebSocket 三步验证第 2 步；同时注意后端重启后需手动刷新页面（前端暂未做断线重连）。
+- **长时间后不再弹提醒**：见上面 WebSocket 三步验证第 2 步；后端重启时前端会自动重连（`onclose` 后 5 秒重连一次），一般无需手动刷新页面。
 
 ---
 

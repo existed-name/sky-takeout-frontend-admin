@@ -22,13 +22,13 @@ if [ -z "${SQL_FILE}" ] || [ ! -f "${SQL_FILE}" ]; then
   exit 1
 fi
 
-CONTAINER=sky-mysql
+CONTAINER=sky-takeout-mysql
 DB=sky_take_out
 BASENAME="$(basename "${SQL_FILE}")"
 COMPOSE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 echo ">>> 1/5 停后端容器（避免重置过程中有请求写库）"
-(cd "${COMPOSE_DIR}" && docker compose stop sky-backend) || true
+(cd "${COMPOSE_DIR}" && docker compose stop sky-takeout-backend) || true
 
 echo ">>> 2/5 删库并重建（按提示输入 MySQL root 口令）"
 docker exec -it "${CONTAINER}" \
@@ -41,7 +41,7 @@ docker exec -it "${CONTAINER}" \
   mysql -u root -p --default-character-set=utf8mb4 -e "source /tmp/${BASENAME}"
 
 echo ">>> 4/5 重新启动后端容器"
-(cd "${COMPOSE_DIR}" && docker compose start sky-backend)
+(cd "${COMPOSE_DIR}" && docker compose start sky-takeout-backend)
 
 echo ">>> 5/5 核验：表清单与关键表行数"
 docker exec -it "${CONTAINER}" \

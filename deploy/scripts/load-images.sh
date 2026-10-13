@@ -5,7 +5,7 @@
 # 用法：
 #   ./load-images.sh [镜像包路径]        # 默认 /opt/sky-images-1.0.0.tar
 #
-# 说明：镜像包由本机 docker save 生成（见 deploy/README.md 的「构建并分发镜像」一节），
+# 说明：镜像包由本机 docker save 生成（见 deploy/README.md 的「C. 构建镜像（本机）」一节），
 #       通常已经一并传成 .tar.gz，本脚本会先解压再 docker load。
 # ============================================================================
 set -euo pipefail
@@ -25,8 +25,8 @@ fi
 echo ">>> 载入镜像：${TARBALL}"
 docker load -i "${TARBALL}"
 
-echo ">>> 已载入的镜像（应看到 sky-backend 与 sky-admin-web）"
-docker images | grep '^sky-' || true
+echo ">>> 已载入的镜像（应看到 sky-takeout-backend 与 sky-takeout-frontend-admin）"
+docker images | grep '^sky-takeout-' || true
 
 echo ">>> 当前容器状态"
 cd "$(dirname "$0")/.."

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# 在【服务器】上执行：把一份 SQL 备份导入 sky-mysql 容器。
+# 在【服务器】上执行：把一份 SQL 备份导入 sky-takeout-mysql 容器。
 #
 # 用法：
 #   ./import-db.sh <sql 文件路径>
@@ -19,7 +19,7 @@ if [ -z "${SQL_FILE}" ] || [ ! -f "${SQL_FILE}" ]; then
   exit 1
 fi
 
-CONTAINER=sky-mysql
+CONTAINER=sky-takeout-mysql
 BASENAME="$(basename "${SQL_FILE}")"
 
 echo ">>> 拷贝 ${BASENAME} 到容器 ${CONTAINER}:/tmp/ ..."

@@ -2,7 +2,7 @@
 # 管理端前端镜像：容器内多阶段构建（不依赖、也不使用本机的全局 Node）
 #
 # 构建命令（必须在【前端仓库根目录】执行，因为构建上下文是仓库根）：
-#     docker build -f deploy/Dockerfile.frontend -t sky-admin-web:1.0.0 .
+#     docker build -f deploy/Dockerfile.frontend -t sky-takeout-frontend-admin:1.0.0 .
 #
 # 仓库根目录的 .dockerignore 负责挡掉 node_modules、dist、dist-sky、draft、.env* 等，
 # 它们不会进入构建上下文。

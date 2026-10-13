@@ -94,7 +94,9 @@ services:
 
 volumes:
   sky-takeout-mysql-data:              # 具名卷：MySQL 数据落在这里
+    name: sky-takeout-mysql-data       # 固定真实卷名：不写 name 时 Docker 会带 compose 项目名前缀，写死便于跨目录（本机 deploy/ 与服务器 /opt/sky-deploy/）一致引用
 
 networks:
   sky-takeout-net:
+    name: sky-takeout-net              # 固定真实网络名：不写 name 时会随项目名变化，写死供其它 compose（Web 用户端）以 external: true 接入
     driver: bridge

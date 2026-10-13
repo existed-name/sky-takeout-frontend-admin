@@ -51,6 +51,11 @@
 **只有 nginx 发布端口**；后端、MySQL、Redis 一律不写 `ports:`，只在容器内网用服务名互访。
 这样「数据库/缓存不暴露到公网」是结构上的保证，而不是靠安全组配置是否写对。
 
+> 网络与数据卷的真实名字已在 `docker-compose.yml` 里用 `name:` **固定**：网络为 `sky-takeout-net`、
+> 卷为 `sky-takeout-mysql-data`，不再随 compose 项目名（默认取所在目录名）变化。因此本机 `deploy/`
+> 与服务器 `/opt/sky-deploy/` 得到的名字完全一致。其它 compose（如 Web 用户端）要接入同一个网络时，
+> 在自身的 networks 段写 `sky-takeout-net: { external: true }` 即可引用它，无需知道本 compose 的项目名。
+
 > Web 用户端是**独立容器、独立端口、自带 nginx 站点**（静态托管 + `/user/` 反向代理），
 > 不复用管理端这份 nginx。因此这里**没有** `location /web/`；图中的 `location /user/`
 > 仅用于从管理端端口直接打用户端接口做调试，两端反向代理的是同一个后端。
@@ -311,6 +316,7 @@ curl -i http://localhost/api/dishes            # 从服务器内部直接打接�
 - **图片上传失败**：413 表示 `client_max_body_size` 太小；其它错误对照本机 `application-dev.yml` 的 OSS 四项逐字比对。
 - **重建后端容器后页面 502**：nginx 会缓存后端容器 IP，`docker compose restart sky-takeout-frontend-admin` 即可。
 - **长时间后不再弹提醒**：见上面 WebSocket 三步验证第 2 步；后端重启时前端会自动重连（`onclose` 后 5 秒重连一次），一般无需手动刷新页面。
+- **其它 compose 接入本后端前确认网络名**：本网络真实名字固定为 `sky-takeout-net`（在 `docker-compose.yml` 里用 `name:` 写死）。用 `docker network ls | grep sky-takeout` 核对，若看到带项目名前缀（如 `deploy_`）的旧网络，说明该 compose 是加 `name:` 之前创建的，需重建容器后才会用到新网络。
 
 ---
 

@@ -29,6 +29,10 @@ services:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_0900_ai_ci
     env_file: .env                     # 提供 MYSQL_ROOT_PASSWORD / MYSQL_DATABASE / MYSQL_USER / MYSQL_PASSWORD / TZ
+    environment:
+      # 容器语言环境设为 UTF-8：进容器用交互式 mysql 客户端查数据时，会话字符集才不会
+      # 回落到 latin1 而把中文显示成问号（服务端与表本身一直是 utf8mb4，数据本身没问题）。
+      LANG: C.UTF-8
     volumes:
       - sky-takeout-mysql-data:/var/lib/mysql   # 具名卷：容器重建不丢数据（docker compose down -v 会删掉它，危险）
     healthcheck:

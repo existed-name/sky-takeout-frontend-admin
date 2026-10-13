@@ -89,7 +89,7 @@ sky-takeout-frontend-admin/
 ## 部署物料（`deploy/`）
 
 - `Dockerfile.frontend`：容器内用 `node:16.20.2` 构建、`nginx:1.27-alpine` 托管 `dist-sky/sky`；**构建上下文是仓库根目录**。
-- `nginx/default.conf`：`/` → 前端静态（hash 路由，`try_files` 兜底）；`/api/` → `sky-takeout-backend:8080/admin/`（路径重写）；`/ws/` → 后端（带升级头、放大超时）；`/user/`、`/web/` 为用户端预留。
+- `nginx/default.conf`：`/` → 前端静态（hash 路由，`try_files` 兜底）；`/api/` → `sky-takeout-backend:8080/admin/`（路径重写）；`/ws/` → 后端（带升级头、放大超时）；`/user/` → 后端（直通，供从管理端端口调试用户端接口；Web 用户端本身是独立容器与独立端口，不走这份 nginx，故不再有 `/web/`）。
 - `docker-compose.yml`：编排 mysql + redis + backend + nginx，**只发布 80 端口**，其余容器不对外。
 - `scripts/*.sh`：本机导出库、服务器载镜像/导入库/重置库。
 - 生产所需的 `VUE_APP_BASE_API` / `VUE_APP_DELETE_PERMISSIONS` 在 `Dockerfile.frontend` 里以 `ARG`/`ENV` **显式注入**——因为 `.env*` 不入库，新克隆仓库会缺文件（见「坑」第 3 条）。

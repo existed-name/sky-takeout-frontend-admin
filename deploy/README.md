@@ -16,7 +16,7 @@
 | `Dockerfile.frontend` | 前端镜像：容器内用 `node:16.20.2` 构建，再用 `nginx:1.27-alpine` 托管产物。构建上下文是**前端仓库根目录**。 |
 | `nginx/default.conf` | 站点配置，以只读方式挂进 nginx 容器（改配置不用重建镜像）。 |
 | `.env.example` | 环境变量模板，只列键名、值留空。 |
-| `.env` | 真实变量与口令（**不入库**，需要自行 `cp .env.example .env` 后填写）。 |
+| `.env` | 真实变量与口令（**不入库**）。本仓库已生成一份本机试跑用 `.env`（不入库）；如需重建，`cp .env.example .env` 后按注释填写。 |
 | `scripts/dump-local-db.sh` | 在**本机**执行：把开发库导出成 SQL 备份。 |
 | `scripts/load-images.sh` | 在**服务器**执行：载入镜像包并打印容器状态。 |
 | `scripts/import-db.sh` | 在**服务器**执行：把 SQL 备份导入 MySQL 容器。 |
@@ -40,8 +40,7 @@
 │    /       → 前端静态产物                                     │
 │    /api/   → sky-takeout-backend:8080/admin/（路径重写）      │
 │    /ws/    → sky-takeout-backend:8080/ws/（WebSocket 升级）   │
-│    /user/  → sky-takeout-backend:8080（直通，为用户端预留）   │
-│    /web/   → 静态目录（为用户端预留）                         │
+│    /user/  → sky-takeout-backend:8080（直通，用户端接口调试） │
 │                │                                              │
 │  sky-takeout-backend 容器（8080，不发布端口）                 │
 │       ├──▶ sky-takeout-mysql 容器（3306，不发布端口）         │
@@ -51,6 +50,10 @@
 
 **只有 nginx 发布端口**；后端、MySQL、Redis 一律不写 `ports:`，只在容器内网用服务名互访。
 这样「数据库/缓存不暴露到公网」是结构上的保证，而不是靠安全组配置是否写对。
+
+> Web 用户端是**独立容器、独立端口、自带 nginx 站点**（静态托管 + `/user/` 反向代理），
+> 不复用管理端这份 nginx。因此这里**没有** `location /web/`；图中的 `location /user/`
+> 仅用于从管理端端口直接打用户端接口做调试，两端反向代理的是同一个后端。
 
 ---
 
@@ -71,7 +74,8 @@
    docker build -t sky-takeout-backend:1.0.0 .
    ```
 
-3. 准备 `deploy/.env`（`cp .env.example .env` 后按注释填写）。取值与服务器**完全一样**：
+3. 准备 `deploy/.env`。本仓库已生成一份本机试跑用 `deploy/.env`（不入库），可直接使用；
+   如需重建，`cp .env.example .env` 后按注释填写。取值与服务器**完全一样**：
    MySQL 主机填 `sky-takeout-mysql`、端口填 `3306`；Redis 主机填 `sky-takeout-redis`、端口填 `6379`。
    这里填的是 compose 服务名（容器之间按服务名互访），本机与服务器没有差别，所以本机那套 `.env`
    可以直接带到服务器上用。

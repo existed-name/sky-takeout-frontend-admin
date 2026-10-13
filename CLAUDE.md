@@ -3,6 +3,48 @@
 本文件只记录本仓库的**约定、关键事实与坑**；项目介绍请见另行编写的 README。
 本工程是从 `dist` 打包产物**还原重建**而来，很多配置以「与基准产物一致」为准，改动前先看清约束。
 
+## 项目结构
+
+```
+sky-takeout-frontend-admin/
+├── public/                     # 静态模板与资源：index.html（品牌名注入点）、manifest.json、favicon、图片
+├── src/
+│   ├── api/                    # 接口封装，按业务模块拆分（category / dish / employee / order / setMeal / users）
+│   ├── assets/                 # 图片、字体、提示音（reminder.mp3 / preview.mp3）等静态资源
+│   ├── components/             # 全局通用组件（Breadcrumb / Hamburger / ImgUpload / InputAutoComplete 等）
+│   ├── config/brand.json       # 品牌名唯一来源，构建期注入 title 与 manifest
+│   ├── icons/                  # svgicon 图标定义与注册
+│   ├── layout/                 # 后台整体布局（侧边栏、顶栏、主区）；Navbar 内含 WebSocket 连接
+│   ├── store/                  # Vuex 状态（app / user 两个 module）
+│   ├── styles/                 # 全局样式与 SCSS 变量（_variables.scss 由构建期注入）
+│   ├── utils/                  # 工具与基础设施：request（axios 实例）、cookies、common、校验等
+│   ├── views/                  # 业务页面：dashboard / dish / setmeal / category / employee / orderDetails / statistics / login / 404
+│   ├── App.vue
+│   ├── main.ts                 # 应用入口
+│   ├── router.ts               # 路由表（hash 模式）
+│   ├── permission.ts           # 路由守卫（按 cookie 里的 token 判断登录）
+│   └── shims-*.d.ts            # 模块 / Vue 单文件组件 / TSX 的类型声明
+├── deploy/                     # 云服务器部署物料
+│   ├── docker-compose.yml      # 编排 mysql + redis + backend + nginx（只发布 80 端口）
+│   ├── Dockerfile.frontend     # 前端镜像：容器内 node 构建 + nginx 托管
+│   ├── nginx/default.conf      # 站点配置：静态页 + /api/、/ws/ 反向代理
+│   ├── scripts/                # 本机导出库；服务器载镜像 / 导入库 / 重置库
+│   ├── .env.example            # 部署侧环境变量模板（真实 .env 不入库）
+│   └── README.md               # 部署说明
+├── docs/admin-api-mapping.md   # 前端函数 ↔ 后端管理端端点对照表
+├── scripts/env-assert.js       # 构建前的 Node 版本断言
+├── .env.example                # 源码侧环境变量模板（.env 及其它 .env.* 不入库）
+├── .dockerignore               # 镜像构建上下文排除清单
+├── .editorconfig / .gitignore / .nvmrc   # 编辑器约定 / 忽略规则 / 基准 Node 16.20.2
+├── LICENSE                     # GPL-3.0
+├── babel.config.js / postcss.config.js / tsconfig.json
+├── vue.config.js               # Vue CLI 配置（端口 8888、别名、品牌名与样式注入等）
+├── package.json / package-lock.json      # 依赖与脚本（serve / build / env:check）
+└── CLAUDE.md                   # 本文件
+```
+
+> `draft/` 为个人草稿、不入库；`node_modules/`、`dist/`、`dist-sky/` 为依赖与构建产物，故不在结构树内。
+
 ## 技术栈与版本（`package.json`、`tsconfig.json`）
 
 - Vue 2.6.10、vue-router 3.1.3、vuex 3.1.2、element-ui 2.13.0、axios 0.18.1、js-cookie 2.2.1。
@@ -24,7 +66,7 @@
 - `baseURL = process.env.VUE_APP_BASE_API = /api`（四个 `.env*` 文件里的取值一致）。
 - **接口字面量不带 `/api`、也不带 `/admin`**。`/api` → `/admin` 的映射属于**代理层**：
   - 开发期：`vue.config.js` `devServer.proxy` 把 `/api` 代理到 `http://localhost:8080`，`pathRewrite: {'^/api':'/admin'}`。
-  - 生产期：nginx `location /api/ { proxy_pass http://sky-backend:8080/admin/; }`。
+  - 生产期：nginx `location /api/ { proxy_pass http://sky-takeout-backend:8080/admin/; }`。
   - 两侧同构，前端源码无需按环境改任何前缀。
 - 统一响应体 `{ code, msg, data }`：成功 `code === 1`；业务失败仍是 **HTTP 200 + code 0**（不能看 HTTP 状态码判定）。未登录/令牌异常才返回 **HTTP 401**，响应拦截器会 `router.push('/login')`。
 - 请求头字段名 **`token`**（无 `Bearer` 前缀），token 存在 **cookie `token`**（`src/utils/cookies.ts`）；路由守卫 `src/permission.ts` 亦按 `Cookies.get('token')` 判断。
@@ -47,7 +89,7 @@
 ## 部署物料（`deploy/`）
 
 - `Dockerfile.frontend`：容器内用 `node:16.20.2` 构建、`nginx:1.27-alpine` 托管 `dist-sky/sky`；**构建上下文是仓库根目录**。
-- `nginx/default.conf`：`/` → 前端静态（hash 路由，`try_files` 兜底）；`/api/` → `sky-backend:8080/admin/`（路径重写）；`/ws/` → 后端（带升级头、放大超时）；`/user/`、`/web/` 为用户端预留。
+- `nginx/default.conf`：`/` → 前端静态（hash 路由，`try_files` 兜底）；`/api/` → `sky-takeout-backend:8080/admin/`（路径重写）；`/ws/` → 后端（带升级头、放大超时）；`/user/`、`/web/` 为用户端预留。
 - `docker-compose.yml`：编排 mysql + redis + backend + nginx，**只发布 80 端口**，其余容器不对外。
 - `scripts/*.sh`：本机导出库、服务器载镜像/导入库/重置库。
 - 生产所需的 `VUE_APP_BASE_API` / `VUE_APP_DELETE_PERMISSIONS` 在 `Dockerfile.frontend` 里以 `ARG`/`ENV` **显式注入**——因为 `.env*` 不入库，新克隆仓库会缺文件（见「坑」第 3 条）。

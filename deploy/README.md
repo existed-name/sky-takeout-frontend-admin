@@ -32,21 +32,21 @@
 ```
 访问者浏览器
      │  http://<公网IP>/
-┌────▼─────────────────────────────────────────────┐
-│ 云主机（Docker + docker compose）                 │
-│  docker 网络 sky-net（仅容器之间互通）             │
-│                                                   │
-│  sky-nginx 容器 —— 发布 80:80（唯一对外端口）      │
-│    /       → 前端静态产物                          │
-│    /api/   → sky-backend:8080/admin/（路径重写）   │
-│    /ws/    → sky-backend:8080/ws/（WebSocket 升级）│
-│    /user/  → sky-backend:8080（直通，为用户端预留）│
-│    /web/   → 静态目录（为用户端预留）              │
-│                │                                  │
-│  sky-backend 容器（8080，不发布端口）              │
-│       ├──▶ sky-mysql 容器（3306，不发布端口）      │
-│       └──▶ sky-redis 容器（6379，不发布端口，带口令）│
-└───────────────────────────────────────────────────┘
+┌────▼──────────────────────────────────────────────────────────┐
+│ 云主机（Docker + docker compose）                             │
+│  docker 网络 sky-takeout-net（仅容器之间互通）                │
+│                                                               │
+│  sky-takeout-frontend-admin 容器 —— 发布 80:80（唯一对外端口）│
+│    /       → 前端静态产物                                     │
+│    /api/   → sky-takeout-backend:8080/admin/（路径重写）      │
+│    /ws/    → sky-takeout-backend:8080/ws/（WebSocket 升级）   │
+│    /user/  → sky-takeout-backend:8080（直通，为用户端预留）   │
+│    /web/   → 静态目录（为用户端预留）                         │
+│                │                                              │
+│  sky-takeout-backend 容器（8080，不发布端口）                 │
+│       ├──▶ sky-takeout-mysql 容器（3306，不发布端口）         │
+│       └──▶ sky-takeout-redis 容器（6379，不发布端口，带口令） │
+└───────────────────────────────────────────────────────────────┘
 ```
 
 **只有 nginx 发布端口**；后端、MySQL、Redis 一律不写 `ports:`，只在容器内网用服务名互访。
@@ -54,7 +54,41 @@
 
 ---
 
-## 三、部署步骤（从拿到云主机到打开登录页）
+## 三、本机试跑（上服务器之前先跑一遍）
+
+上服务器之前，先用同一套物料在本机把整条链路跑通：能提前暴露 `.env` 缺项、镜像引用不对、
+端口冲突等问题。流程与服务器基本一致，只是省掉了「打包传输」和「导入备份」两步。
+
+1. **先启动 Docker Desktop**，确认守护进程在跑（`docker version` 能看到 Server 段）。
+   本机与服务器跑的是同一份 compose，物料无需任何改动。
+
+2. 在**本机构建两个镜像**（tag 与服务器上用的完全一致）：
+
+   ```bash
+   # 前端镜像：在本仓库根目录执行
+   docker build -f deploy/Dockerfile.frontend -t sky-takeout-frontend-admin:1.0.0 .
+   # 后端镜像：在后端仓库根目录执行
+   docker build -t sky-takeout-backend:1.0.0 .
+   ```
+
+3. 准备 `deploy/.env`（`cp .env.example .env` 后按注释填写）。取值与服务器**完全一样**：
+   MySQL 主机填 `sky-takeout-mysql`、端口填 `3306`；Redis 主机填 `sky-takeout-redis`、端口填 `6379`。
+   这里填的是 compose 服务名（容器之间按服务名互访），本机与服务器没有差别，所以本机那套 `.env`
+   可以直接带到服务器上用。
+
+4. 在 `deploy/` 目录执行 `docker compose up -d`，然后浏览器打开 `http://localhost/`。
+   站点发布在容器的 80 端口上，本机直接访问即可（若本机 80 已被别的服务占用，可临时把
+   `docker-compose.yml` 的端口映射改成如 `"9080:80"`，验证完改回**并确认这一行没有被带到服务器上**）。
+
+5. **连容器里的数据库**：MySQL / Redis 都**不发布端口**，宿主机连不上，需进容器操作，例如
+   `docker compose exec sky-takeout-mysql mysql -u root -p`。库是空的话，可先按「部署步骤 E / H」
+   导出并导入一份数据备份，页面才有内容可看。
+
+> 数据落在具名卷 `sky-takeout-mysql-data` 上；`docker compose down` 保留数据，加 `-v` 才会连数据一起删。
+
+---
+
+## 四、部署步骤（从拿到云主机到打开登录页）
 
 > 命令按 **本机 Git Bash + 服务器 bash** 编写。`<公网IP>`、`<日期>` 等按实际替换。
 
@@ -90,7 +124,7 @@ docker --version && docker compose version    # 两条都要有输出
 
 ```bash
 cd <前端仓库根目录>
-docker build -f deploy/Dockerfile.frontend -t sky-admin-web:1.0.0 .
+docker build -f deploy/Dockerfile.frontend -t sky-takeout-frontend-admin:1.0.0 .
 ```
 
 后端镜像由**后端仓库根目录**的 `Dockerfile` 单独构建（两个是独立的 git 仓库，
@@ -98,14 +132,14 @@ docker build -f deploy/Dockerfile.frontend -t sky-admin-web:1.0.0 .
 
 ```bash
 cd <后端仓库根目录>
-docker build -t sky-backend:1.0.0 .
+docker build -t sky-takeout-backend:1.0.0 .
 ```
 
 把两个镜像打成一个包，便于一起传上服务器：
 
 ```bash
 cd /d/tmp/sky-deploy
-docker save -o sky-images-1.0.0.tar sky-admin-web:1.0.0 sky-backend:1.0.0
+docker save -o sky-images-1.0.0.tar sky-takeout-frontend-admin:1.0.0 sky-takeout-backend:1.0.0
 gzip -k sky-images-1.0.0.tar          # 生成 .tar.gz，体积约减到 1/3
 ```
 
@@ -119,7 +153,7 @@ cd <前端仓库根目录>/deploy
 cp .env.example .env
 # 用编辑器按 .env 里每行的注释填写取值：
 #   取值来源是本机后端配置文件 application-dev.yml；
-#   只有连接地址需要改：MySQL 主机改 sky-mysql、端口改 3306，Redis 主机改 sky-redis；
+#   只有连接地址需要改：MySQL 主机改 sky-takeout-mysql、端口改 3306，Redis 主机改 sky-takeout-redis；
 #   标注「密钥」的项建议换成新值；口令请用新的强口令。
 ```
 
@@ -166,15 +200,15 @@ mv /opt/sky_take_out_<日期>.sql /opt/sky-deploy/sql/
 
 cd /opt/sky-deploy
 ./scripts/load-images.sh /opt/sky-images-1.0.0.tar
-# 应看到 sky-backend 与 sky-admin-web 两个镜像
+# 应看到 sky-takeout-backend 与 sky-takeout-frontend-admin 两个镜像
 ```
 
 ### H. 服务器：先起数据库并导入数据
 
 ```bash
 cd /opt/sky-deploy
-docker compose up -d sky-mysql     # 只先起数据库
-docker compose ps                  # 等 sky-mysql 变成 healthy（首次约 30~60 秒）
+docker compose up -d sky-takeout-mysql    # 只先起数据库
+docker compose ps                         # 等 sky-takeout-mysql 变成 healthy（首次约 30~60 秒）
 ./scripts/import-db.sh sql/sky_take_out_<日期>.sql
 ```
 
@@ -187,7 +221,7 @@ docker compose ps                  # 等 sky-mysql 变成 healthy（首次约 30
 cd /opt/sky-deploy
 docker compose up -d               # 起 nginx + 后端 + Redis（mysql 已在跑）
 docker compose ps                  # 四个容器都应为 running / healthy
-docker compose logs --tail=100 sky-backend    # 看到 "Started SkyApplication in x seconds" 才算起好
+docker compose logs --tail=100 sky-takeout-backend    # 看到 "Started SkyApplication in x seconds" 才算起好
 curl -I http://localhost/          # 本地自测：应返回 200 与 text/html
 ```
 
@@ -200,7 +234,7 @@ curl -I http://localhost/          # 本地自测：应返回 200 与 text/html
 
 ---
 
-## 四、验收清单
+## 五、验收清单
 
 > 全部在**公网 IP + 真实浏览器**上做。带 **写库** 标记的步骤请只在云库上做。
 
@@ -248,41 +282,41 @@ curl -I http://localhost/          # 本地自测：应返回 200 与 text/html
 | --- | --- | --- |
 | 10 | 从本机 `telnet <公网IP> 3306` 与 `6379` | **连不上** |
 | 11 | `docker compose ps` 的端口列 | 只有 nginx 有 `0.0.0.0:80->80/tcp` |
-| 12 | 镜像里不含明文密钥：`docker cp sky-backend:/app/app.jar /tmp/app.jar` 后 `unzip -l /tmp/app.jar \| grep application-dev` | 输出「未发现」 |
+| 12 | 镜像里不含明文密钥：`docker cp sky-takeout-backend:/app/app.jar /tmp/app.jar` 后 `unzip -l /tmp/app.jar \| grep application-dev` | 输出「未发现」 |
 | 13 | `reboot` 后等 2 分钟再打开页面 | 四个容器自动回来 |
 | 14 | `df -h` 与 `docker system df` | 磁盘使用 < 70% |
 
 ---
 
-## 五、常见问题排查
+## 六、常见问题排查
 
 ```bash
 cd /opt/sky-deploy
 docker compose ps                              # 四个容器状态 / 端口 / 健康
-docker compose logs --tail=200 sky-backend     # 看后端日志
-docker compose logs --tail=100 sky-nginx
-docker compose exec sky-backend env | grep -c '^SKY_'   # 应为 24，少了就是 .env 缺项
-docker exec sky-nginx nginx -t                 # 校验 nginx 配置语法
+docker compose logs --tail=200 sky-takeout-backend     # 看后端日志
+docker compose logs --tail=100 sky-takeout-frontend-admin
+docker compose exec sky-takeout-backend env | grep -c '^SKY_'   # 应为 24，少了就是 .env 缺项
+docker exec sky-takeout-frontend-admin nginx -t                 # 校验 nginx 配置语法
 curl -i http://localhost/api/dishes            # 从服务器内部直接打接口（未带 token 应返回 401 或业务失败 JSON）
 ```
 
-- **后端起不来，日志报 `Could not resolve placeholder 'sky.xxx'`**：`.env` 缺项，补齐后 `docker compose up -d sky-backend`。
-- **`Communications link failure` / `Access denied`**：确认 MySQL 已 healthy；确认 `SKY_DATASOURCE_HOST=sky-mysql`、端口 `3306`；确认应用账号口令与 `MYSQL_PASSWORD` 一致。注意 MySQL 口令只在数据卷首次初始化时生效，改 `.env` 后需重建数据卷或在库内 `ALTER USER`。
-- **页面能开但接口全 401/404**：检查 `/api/` 是否被重写到了 `/admin/`（`docker compose exec sky-nginx cat /etc/nginx/conf.d/default.conf | grep proxy_pass`）。
-- **前端白屏 / 资源 404**：多半是挂载的 `root` 层不对或浏览器缓存了旧 `index.html`（`docker compose exec sky-nginx ls /usr/share/nginx/html` 应直接看到 `index.html`、`css`、`js`），并 Ctrl+F5 强刷。
+- **后端起不来，日志报 `Could not resolve placeholder 'sky.xxx'`**：`.env` 缺项，补齐后 `docker compose up -d sky-takeout-backend`。
+- **`Communications link failure` / `Access denied`**：确认 MySQL 已 healthy；确认 `SKY_DATASOURCE_HOST=sky-takeout-mysql`、端口 `3306`；确认应用账号口令与 `MYSQL_PASSWORD` 一致。注意 MySQL 口令只在数据卷首次初始化时生效，改 `.env` 后需重建数据卷或在库内 `ALTER USER`。
+- **页面能开但接口全 401/404**：检查 `/api/` 是否被重写到了 `/admin/`（`docker compose exec sky-takeout-frontend-admin cat /etc/nginx/conf.d/default.conf | grep proxy_pass`）。
+- **前端白屏 / 资源 404**：多半是挂载的 `root` 层不对或浏览器缓存了旧 `index.html`（`docker compose exec sky-takeout-frontend-admin ls /usr/share/nginx/html` 应直接看到 `index.html`、`css`、`js`），并 Ctrl+F5 强刷。
 - **图片上传失败**：413 表示 `client_max_body_size` 太小；其它错误对照本机 `application-dev.yml` 的 OSS 四项逐字比对。
-- **重建后端容器后页面 502**：nginx 会缓存后端容器 IP，`docker compose restart sky-nginx` 即可。
+- **重建后端容器后页面 502**：nginx 会缓存后端容器 IP，`docker compose restart sky-takeout-frontend-admin` 即可。
 - **长时间后不再弹提醒**：见上面 WebSocket 三步验证第 2 步；后端重启时前端会自动重连（`onclose` 后 5 秒重连一次），一般无需手动刷新页面。
 
 ---
 
-## 六、更新与回滚
+## 七、更新与回滚
 
 **日常更新**：本机重新构建镜像（tag 递增，如 1.0.1）→ `docker save` → 传服务器 → `docker load`
-→ 改 `docker-compose.yml` 里的 tag → `docker compose up -d` → `docker compose restart sky-nginx`。
+→ 改 `docker-compose.yml` 里的 tag → `docker compose up -d` → `docker compose restart sky-takeout-frontend-admin`。
 
 **回滚（一级，最快）**：把 `docker-compose.yml` 里的 tag 改回上一个版本，`docker compose up -d`，
-再 `docker compose restart sky-nginx`。前提是服务器上保留了旧版本镜像。
+再 `docker compose restart sky-takeout-frontend-admin`。前提是服务器上保留了旧版本镜像。
 
 **回滚（二级，连数据）**：`./scripts/reset-db.sh /opt/sky-deploy/sql/<备份>.sql`。
 
@@ -296,7 +330,7 @@ curl -i http://localhost/api/dishes            # 从服务器内部直接打接�
 ```bash
 cd /opt/sky-deploy
 set -a; . ./.env; set +a
-docker compose exec -T -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" sky-mysql \
+docker compose exec -T -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" sky-takeout-mysql \
   mysqldump -u root --default-character-set=utf8mb4 --single-transaction --databases sky_take_out \
   > sql/before-upgrade-<日期>.sql
 ```

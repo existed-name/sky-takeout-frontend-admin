@@ -1,5 +1,5 @@
 # ============================================================================
-# 苍穹外卖 · 全套服务编排（管理端前端 + 后端 + MySQL + Redis）
+# 苍穹外卖 · 全套服务编排（管理端前端 + Web 用户端 + 后端 + MySQL + Redis）
 #
 # 使用位置：本文件与 .env、nginx/default.conf 放在同一目录。
 #   本机对应前端仓库的 deploy/ 目录；服务器上对应 /opt/sky-deploy/。
@@ -92,11 +92,31 @@ services:
       options: { max-size: "10m", max-file: "3" }
     networks: [sky-takeout-net]
 
+  # ---------- Web 用户端：独立站点，自带 nginx 与 /user/ 反代，单独对外端口 ----------
+  sky-takeout-frontend-user:
+    image: sky-takeout-frontend-user:1.0.0   # 由 Web 用户端仓库单独构建后 docker load 进来，tag 按语义化版本递增
+    container_name: sky-takeout-frontend-user
+    restart: unless-stopped
+    # nginx 在【启动时】解析 proxy_pass 里的主机名：后端容器必须先于本服务存在，
+    # 否则本服务会以 host not found in upstream "sky-takeout-backend" 直接启动失败。
+    depends_on:
+      sky-takeout-backend: { condition: service_started }
+    environment:
+      # 站点配置是镜像内模板，容器启动时由 envsubst 渲染；这两个值就是反向代理的目标。
+      BACKEND_HOST: sky-takeout-backend
+      BACKEND_PORT: "8080"
+    ports:
+      - "8082:80"                      # 用户端站点对外端口（80 已归管理端）
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+    networks: [sky-takeout-net]
+
 volumes:
   sky-takeout-mysql-data:              # 具名卷：MySQL 数据落在这里
     name: sky-takeout-mysql-data       # 固定真实卷名：不写 name 时 Docker 会带 compose 项目名前缀，写死便于跨目录（本机 deploy/ 与服务器 /opt/sky-deploy/）一致引用
 
 networks:
   sky-takeout-net:
-    name: sky-takeout-net              # 固定真实网络名：不写 name 时会随项目名变化，写死供其它 compose（Web 用户端）以 external: true 接入
+    name: sky-takeout-net              # 固定真实网络名：不写 name 时会随项目名变化，写死便于跨目录一致引用、也便于其它 compose 以 external: true 接入
     driver: bridge

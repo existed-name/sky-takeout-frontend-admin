@@ -25,7 +25,7 @@ fi
 echo ">>> 载入镜像：${TARBALL}"
 docker load -i "${TARBALL}"
 
-echo ">>> 已载入的镜像（应看到 sky-takeout-backend 与 sky-takeout-frontend-admin）"
+echo ">>> 已载入的镜像（应看到 sky-takeout-backend、sky-takeout-frontend-admin 与 sky-takeout-frontend-user）"
 docker images | grep '^sky-takeout-' || true
 
 echo ">>> 当前容器状态"

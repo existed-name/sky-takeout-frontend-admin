@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "苍穹外卖管理端前端（由 dist 打包产物还原重建，Node 16.20.2 + Vue CLI 3）",
+  "license": "GPL-3.0",
   "scripts": {
     "env:check": "node scripts/env-assert.js",
     "serve": "npm run env:check && vue-cli-service serve",

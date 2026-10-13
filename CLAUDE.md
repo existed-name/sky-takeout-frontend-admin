@@ -25,7 +25,7 @@ sky-takeout-frontend-admin/
 │   ├── permission.ts           # 路由守卫（按 cookie 里的 token 判断登录）
 │   └── shims-*.d.ts            # 模块 / Vue 单文件组件 / TSX 的类型声明
 ├── deploy/                     # 云服务器部署物料
-│   ├── docker-compose.yml      # 编排 mysql + redis + backend + nginx（只发布 80 端口）
+│   ├── docker-compose.yml      # 编排 mysql + redis + backend + 管理端 nginx + Web 用户端（对外 80 / 8082）
 │   ├── Dockerfile.frontend     # 前端镜像：容器内 node 构建 + nginx 托管
 │   ├── nginx/default.conf      # 站点配置：静态页 + /api/、/ws/ 反向代理
 │   ├── scripts/                # 本机导出库；服务器载镜像 / 导入库 / 重置库
@@ -90,7 +90,7 @@ sky-takeout-frontend-admin/
 
 - `Dockerfile.frontend`：容器内用 `node:16.20.2` 构建、`nginx:1.27-alpine` 托管 `dist-sky/sky`；**构建上下文是仓库根目录**。
 - `nginx/default.conf`：`/` → 前端静态（hash 路由，`try_files` 兜底）；`/api/` → `sky-takeout-backend:8080/admin/`（路径重写）；`/ws/` → 后端（带升级头、放大超时）；`/user/` → 后端（直通，供从管理端端口调试用户端接口；Web 用户端本身是独立容器与独立端口，不走这份 nginx，故不再有 `/web/`）。
-- `docker-compose.yml`：编排 mysql + redis + backend + nginx，**只发布 80 端口**，其余容器不对外。**网络名与卷名已用 `name:` 固定**（`sky-takeout-net` / `sky-takeout-mysql-data`），不随 compose 项目名（默认取目录名）变化，供其它 compose（Web 用户端）以 `external: true` 接入同一网络。
+- `docker-compose.yml`：编排 mysql + redis + backend + 管理端 nginx + Web 用户端**五个服务**，**只发布两个对外端口**（管理端 80、Web 用户端 8082），其余容器不对外。Web 用户端镜像 `sky-takeout-frontend-user:1.0.0` **由 Web 用户端仓库构建**（不在本仓库），服务名与容器名同为 `sky-takeout-frontend-user`；其站点配置是**打进镜像的 nginx 模板**（`/etc/nginx/templates/default.conf.template`，容器启动时由 nginx 官方 entrypoint 用 `envsubst` 渲染生效，**不需要挂载文件**，与管理端挂载 `nginx/default.conf` 的做法不同），容器内 `location /user/` 反代到 `sky-takeout-backend:8080`（用户端前缀**原样透传、不重写**）；编排给它加了 `depends_on`（`sky-takeout-backend: { condition: service_started }`），因为 nginx 在**启动时**解析上游主机名，后端容器若不存在会以 `host not found in upstream "sky-takeout-backend"` 直接启动失败。**网络名与卷名已用 `name:` 固定**（`sky-takeout-net` / `sky-takeout-mysql-data`），不随 compose 项目名（默认取目录名）变化，供其它 compose 以 `external: true` 接入同一网络。
 - `scripts/*.sh`：本机导出库、服务器载镜像/导入库/重置库。
 - 生产所需的 `VUE_APP_BASE_API` / `VUE_APP_DELETE_PERMISSIONS` 在 `Dockerfile.frontend` 里以 `ARG`/`ENV` **显式注入**——因为 `.env*` 不入库，新克隆仓库会缺文件（见「坑」第 3 条）。
 - 根目录 `.dockerignore` 挡掉 `node_modules` / `dist` / `dist-sky` / `draft` / `.env*` 等，避免打进构建上下文。

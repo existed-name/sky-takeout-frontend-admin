@@ -3,6 +3,8 @@
 本目录是「苍穹外卖」的云服务器部署物料。目标：在一台云主机上用一套 `docker compose`
 同时跑起 **管理端前端（nginx）+ Web 用户端（nginx）+ 后端 + MySQL + Redis** 五件事，
 对外发布两个端口 —— 管理端 80、用户端 8082。
+本流程已于 **2026-10-14** 在阿里云 ECS（Ubuntu 22.04 LTS、2 核 4G）上**完整跑通**，
+管理端（`http://<公网IP>/`）与用户端（`http://<公网IP>:8082/`）站点均可从公网访问。
 
 > 面向公网 IP 直接访问，不使用域名、暂不启用 HTTPS。安全组放行 22（SSH）、80（HTTP）与 8082（用户端 HTTP）。
 
@@ -156,16 +158,27 @@ docker build -t sky-takeout-backend:1.0.0 .
 Web 用户端镜像 `sky-takeout-frontend-user:1.0.0` 不在本仓库构建，需从 Web 用户端仓库取到：
 换机器时由对方在其仓库执行 `docker save` 后提供，这边 `docker load` 引入。
 
-把三个镜像打成一个包，便于一起传上服务器：
+**① 三个自建镜像（必传）**：后端、管理端前端、用户端前端，打成一个包一起传上服务器：
 
 ```bash
 cd /d/tmp/sky-deploy
 docker save -o sky-images-1.0.0.tar sky-takeout-frontend-admin:1.0.0 sky-takeout-backend:1.0.0 sky-takeout-frontend-user:1.0.0
-gzip -k sky-images-1.0.0.tar          # 生成 .tar.gz，体积约减到 1/3
+gzip -k sky-images-1.0.0.tar          # 生成 .tar.gz，体积约减到 1/3（产物 sky-images-1.0.0.tar.gz）
+```
+
+**② 两个官方基础镜像（大陆服务器必传）**：`mysql:8.0` 与 `redis:7-alpine`。这两个是
+`docker-compose.yml` 里 `mysql` / `redis` 两个服务直接引用的官方镜像，若不在本机一并打包传上去，
+大陆服务器在 `docker compose up` 时会拉不到它们而启动失败（原因见「六、常见问题排查」）：
+
+```bash
+cd /d/tmp/sky-deploy
+docker save -o sky-base-images-1.0.0.tar mysql:8.0 redis:7-alpine
+gzip -k sky-base-images-1.0.0.tar     # 生成 .tar.gz，约 239 MB（产物 sky-base-images-1.0.0.tar.gz）
 ```
 
 *在做什么*：在**本机构建**再到服务器 `docker load`。这样服务器不需要 Node / Maven 工具链，
-也不依赖服务器访问外网下载依赖，离线可复现。每次重新构建请**递增 tag**（如 1.0.1），不要复用旧 tag。
+也不依赖服务器访问外网下载依赖，离线可复现；**但官方基础镜像同样要一并离线传上去**（见上面 ②），
+因为大陆服务器访问不了 Docker Hub。每次重新构建请**递增 tag**（如 1.0.1），不要复用旧 tag。
 
 ### D. 准备 `.env`（本机）
 
@@ -203,7 +216,7 @@ scp -r deploy root@<公网IP>:/opt/sky-deploy
 
 # 上传镜像包与数据备份（先 cd 进目录、用相对文件名，避免 scp 把 "D:" 当成主机名）
 cd /d/tmp/sky-deploy
-scp sky-images-1.0.0.tar.gz sky_take_out_<日期>.sql root@<公网IP>:/opt/
+scp sky-images-1.0.0.tar.gz sky-base-images-1.0.0.tar.gz sky_take_out_<日期>.sql root@<公网IP>:/opt/
 ```
 
 *在做什么*：把 compose 文件、nginx 配置、脚本、`.env`、镜像包、数据备份都送到服务器。
@@ -222,6 +235,9 @@ mv /opt/sky_take_out_<日期>.sql /opt/sky-deploy/sql/
 cd /opt/sky-deploy
 ./scripts/load-images.sh /opt/sky-images-1.0.0.tar
 # 应看到 sky-takeout-backend、sky-takeout-frontend-admin 与 sky-takeout-frontend-user 三个镜像
+
+docker load -i /opt/sky-base-images-1.0.0.tar.gz
+# 载入 MySQL / Redis 的官方基础镜像（mysql:8.0、redis:7-alpine）；能直接吃 .tar.gz
 ```
 
 ### H. 服务器：先起数据库并导入数据
@@ -334,6 +350,7 @@ docker exec sky-takeout-frontend-admin nginx -t                 # 校验 nginx �
 curl -i http://localhost/api/dishes            # 从服务器内部直接打接口（未带 token 应返回 401 或业务失败 JSON）
 ```
 
+- **`docker pull` 拉不到镜像**（报 `connection refused`；即便配了阿里云 ACR 个人专属加速地址、`docker info` 里 `Registry Mirrors` 已生效，仍报 `not found`）：服务器在大陆网络、访问 Docker Hub 受限；阿里云 ACR 的个人加速器自 2024 年起只对**它自己已缓存**的镜像有效，换其它公共镜像源通常一样无效。**处置**：别再折腾镜像源，改用**离线传官方镜像**——在本机 `docker save mysql:8.0 redis:7-alpine` 后传服务器 `docker load`（做法见「四、部署步骤」C 步与 G 步）。
 - **后端起不来，日志报 `Could not resolve placeholder 'sky.xxx'`**：`.env` 缺项，补齐后 `docker compose up -d sky-takeout-backend`。
 - **`Communications link failure` / `Access denied`**：确认 MySQL 已 healthy；确认 `SKY_DATASOURCE_HOST=sky-takeout-mysql`、端口 `3306`；确认应用账号口令与 `MYSQL_PASSWORD` 一致。注意 MySQL 口令只在数据卷首次初始化时生效，改 `.env` 后需重建数据卷或在库内 `ALTER USER`。
 - **页面能开但接口全 401/404**：检查 `/api/` 是否被重写到了 `/admin/`（`docker compose exec sky-takeout-frontend-admin cat /etc/nginx/conf.d/default.conf | grep proxy_pass`）。
@@ -352,6 +369,8 @@ curl -i http://localhost/api/dishes            # 从服务器内部直接打接�
 其仓库构建）→ `docker save`（三个镜像一起打包）→ 传服务器 → `docker load`
 → 改 `docker-compose.yml` 里的 tag → `docker compose up -d` → 按需 `docker compose restart`
 对应的 nginx 容器（管理端 `sky-takeout-frontend-admin`、用户端 `sky-takeout-frontend-user`）。
+这里打包的是三个**自建镜像**；MySQL / Redis 的官方基础镜像无需每次更新（首次部署时已随 G 步载入服务器），
+但**换服务器时官方基础镜像需一并离线传**（见 C 步），否则新服务器拉不到官方镜像、`up -d` 会失败。
 
 **回滚（一级，最快）**：把 `docker-compose.yml` 里的 tag 改回上一个版本，`docker compose up -d`，
 再按需 `docker compose restart` 对应的 nginx 容器（管理端 `sky-takeout-frontend-admin`、用户端
@@ -360,7 +379,7 @@ curl -i http://localhost/api/dishes            # 从服务器内部直接打接�
 **回滚（二级，连数据）**：`./scripts/reset-db.sh /opt/sky-deploy/sql/<备份>.sql`。
 
 **回滚（三级，整机重来）**：`docker compose down`（**不要加 `-v`**，加 `-v` 会连数据卷一起删）
-→ 重新 `docker load` → 重新导入 → `up -d`。
+→ 重新 `docker load`（两个镜像包都要 load：自建镜像 `sky-images-*.tar.gz` 与官方基础镜像 `sky-base-images-*.tar.gz`，见 C / G 步）→ 重新导入 → `up -d`。
 
 **必须长期保留的三样东西**：服务器上的 `deploy/.env`、`sql/` 目录下的备份、各版本自建镜像（管理端前端、后端、Web 用户端）至少各保留一个旧版本。
 
@@ -373,3 +392,56 @@ docker compose exec -T -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" sky-takeout-mysql \
   mysqldump -u root --default-character-set=utf8mb4 --single-transaction --databases sky_take_out \
   > sql/before-upgrade-<日期>.sql
 ```
+
+---
+
+## 八、服务器上的文件分布
+
+> 采集时间 2026-10-14，阿里云 ECS（Ubuntu 22.04 LTS，2 核 4G）。
+> 服务器上**没有任何源码，也不需要 Node / Maven**——前端与后端都在**本机**构建好镜像再传上来，
+> 所以整台机器上只有「部署物料 + 镜像包 + Docker 资源」三类东西。
+
+### `/opt/`
+
+```
+/opt/
+├── alibabacloud/                   阿里云自带目录（与本项目无关，勿动）
+├── containerd/                     Docker 自带目录（与本项目无关，勿动）
+├── sky-deploy/                     部署物料（= 本机 deploy/ 上传的那一份）
+├── sky-base-images-1.0.0.tar.gz    官方基础镜像包，约 239 MB
+├── sky-images-1.0.0.tar.gz         自建镜像包，约 194 MB（原始包）
+└── sky-images-1.0.0.tar            解压副产物，约 196 MB（可删）
+```
+
+### `/opt/sky-deploy/`（= 本机 `deploy/`，一一对应）
+
+```
+/opt/sky-deploy/
+├── docker-compose.yml     编排五个服务
+├── Dockerfile.frontend    管理端前端镜像构建文件
+├── .env                   真实变量与口令（权限 600）
+├── .env.example           变量模板
+├── README.md              部署说明（本文件）
+├── nginx/default.conf     站点配置（挂进 nginx 容器）
+├── scripts/               四个脚本（本机导出 / 服务器载镜像·导入库·重置库）
+└── sql/sky_takeout.sql    数据备份
+```
+
+### Docker 资源
+
+- **镜像 5 个（全部在用）**：`mysql:8.0`、`redis:7-alpine`、`sky-takeout-backend:1.0.0`、
+  `sky-takeout-frontend-admin:1.0.0`、`sky-takeout-frontend-user:1.0.0`。
+- **容器 5 个（全部运行中）**：只有两个 nginx 发布端口——管理端 `0.0.0.0:80->80/tcp`、
+  用户端 `0.0.0.0:8082->80/tcp`；mysql / redis / backend 均不发布端口。
+- **卷**：`sky-takeout-mysql-data`（MySQL 数据，删它 = 删库）。
+- **网络**：`sky-takeout-net`（bridge，五个容器互通）。
+- **磁盘**：根分区 40G，已用 6.1G（17%），余量充足。
+
+### 别动 / 可清理
+
+- **别动**：`/opt/sky-deploy/` 整个目录（尤其 `.env`、`sql/`、`docker-compose.yml`）、
+  两个镜像包（`.tar.gz`，回滚要用）、数据卷 `sky-takeout-mysql-data`。
+- **可清理**：`/opt/sky-images-1.0.0.tar` —— `load-images.sh` 里 `gunzip -kf` 留下的**解压副产物**
+  （约 196 MB，与 `.tar.gz` 等价），删掉不影响功能。官方基础镜像包只以 `.tar.gz` 形式存在
+  （`docker load` 直接读 `.tar.gz`，不落地 `.tar`），没有对应的 `.tar` 可清。
+- **危险（绝不要执行）**：`docker compose down -v`、`docker volume rm`。
